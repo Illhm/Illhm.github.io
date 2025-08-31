@@ -102,16 +102,7 @@
         </div>
       </section>
 
-      <section>
-        <h2>Playlist (Audio Lokal)</h2>
-        <p class="note">Mode ini hanya memakai file audio dari repo ini. Buat folder <code>audio/</code> lalu unggah file <code>.mp3</code> / <code>.ogg</code> yang legal untuk dibagikan.</p>
-        <div class="audio-player" style="margin-top:16px; padding: 12px;">
-          <div style="margin:6px 0 8px;">Sedang diputar: <strong id="nowTitle">—</strong></div>
-          <audio id="player" controls preload="metadata" style="width:100%"></audio>
-          <ul class="tracks" id="trackList"></ul>
-          <p class="note">Catatan: Jangan mengunggah musik berhak cipta tanpa izin. Gunakan karya sendiri atau lisensi bebas.</p>
-        </div>
-      </section>
+      
 
       <footer>
         © <span id="year"></span> Nama Kamu • Dibangun dengan HTML/CSS/JS • Hosted di GitHub Pages
@@ -120,52 +111,8 @@
   </div>
 
   <script>
-    // ====== Audio lokal: ganti daftar di bawah dengan punyamu ======
-    const tracks = [
-      { title: "Contoh Lagu 1", file: "audio/lagu1.mp3" },
-      { title: "Contoh Lagu 2", file: "audio/lagu2.mp3" },
-    ];
-
-    const player = document.getElementById('player');
-    const list = document.getElementById('trackList');
-    const nowTitle = document.getElementById('nowTitle');
-    let currentIndex = 0;
-
-    function updateNow() {
-      nowTitle.textContent = tracks[currentIndex] ? tracks[currentIndex].title : '—';
-    }
-
-    function playAt(i) {
-      if (!tracks[i]) return;
-      currentIndex = i;
-      player.src = tracks[i].file;
-      player.play();
-      updateNow();
-    }
-
-    function renderList() {
-      list.innerHTML = '';
-      tracks.forEach((t, i) => {
-        const li = document.createElement('li');
-        const left = document.createElement('span');
-        left.textContent = `${i+1}. ${t.title}`;
-        const playBtn = document.createElement('button');
-        playBtn.textContent = 'Putar';
-        playBtn.addEventListener('click', () => playAt(i));
-        li.appendChild(left); li.appendChild(playBtn);
-        list.appendChild(li);
-      });
-      if (tracks.length) { currentIndex = 0; player.src = tracks[0].file; updateNow(); }
-    }
-
-    player.addEventListener('ended', () => {
-      if (currentIndex + 1 < tracks.length) {
-        playAt(currentIndex + 1);
-      }
-    });
-
-    renderList();
-    document.getElementById('year').textContent = new Date().getFullYear();
-  </script>
+  // Hanya untuk tahun di footer
+  document.getElementById('year').textContent = new Date().getFullYear();
+</script>
 </body>
 </html>
