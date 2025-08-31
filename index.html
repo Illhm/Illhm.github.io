@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bio • Nama Kamu</title>
+  <meta name="description" content="Situs bio sederhana yang di-host di GitHub Pages, dengan playlist musik.">
+  <style>
+    :root {
+      --bg: #0f172a;           /* slate-900 */
+      --bg2: #111827;          /* gray-900 */
+      --card: #111827;
+      --text: #e5e7eb;         /* gray-200 */
+      --muted: #9ca3af;        /* gray-400 */
+      --primary: #38bdf8;      /* sky-400 */
+      --ring: rgba(56,189,248,.35);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      color: var(--text);
+      background: radial-gradient(1200px 600px at 10% -10%, #0b1022 30%, transparent),
+                  radial-gradient(1200px 600px at 110% -10%, #08263a 30%, transparent),
+                  linear-gradient(180deg, var(--bg), var(--bg2));
+      min-height: 100svh;
+    }
+    .wrap { max-width: 880px; margin: 0 auto; padding: 24px; }
+    .card {
+      background: color-mix(in oklab, var(--card), #ffffff 2%);
+      border: 1px solid color-mix(in oklab, #ffffff, transparent 90%);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+      border-radius: 20px;
+      padding: 28px;
+    }
+    header { display: grid; grid-template-columns: 96px 1fr; gap: 18px; align-items: center; }
+    .avatar { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); }
+    h1 { margin: 0; font-size: 1.8rem; letter-spacing: .2px; }
+    .tagline { margin: 6px 0 0; color: var(--muted); }
+
+    .links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+    .btn {
+      appearance: none; border: 1px solid color-mix(in oklab, #ffffff, transparent 88%);
+      background: #0b1324; color: var(--text); text-decoration: none; padding: 10px 14px; border-radius: 12px;
+      display: inline-flex; align-items: center; gap: 8px; font-weight: 600;
+      transition: transform .06s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,.35); border-color: var(--primary); }
+
+    section { margin-top: 28px; }
+    section h2 { font-size: 1.2rem; margin: 0 0 10px; letter-spacing: .2px; }
+    p { color: var(--text); opacity: .9; line-height: 1.6; }
+
+    .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+
+    .playlist-embed, .audio-player { width: 100%; border-radius: 14px; overflow: hidden; border: 1px solid color-mix(in oklab, #ffffff, transparent 88%); }
+    iframe { width: 100%; height: 400px; border: 0; display: block; }
+
+    .note { font-size: .9rem; color: var(--muted); }
+
+    ul.tracks { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
+    ul.tracks li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: #0b1324; border: 1px solid color-mix(in oklab, #ffffff, transparent 90%); }
+    ul.tracks button { all: unset; cursor: pointer; font-weight: 600; color: var(--primary); }
+
+    footer { margin-top: 24px; color: var(--muted); font-size: .85rem; }
+    @media (min-width: 768px) {
+      .grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" role="main">
+      <header>
+        <!-- Ganti src dengan fotomu -->
+        <img class="avatar" src="https://avatars.githubusercontent.com/u/583231?v=4" alt="Foto profil" />
+        <div>
+          <h1>Nama Kamu</h1>
+          <p class="tagline">Slogan singkat • Pekerjaan/Role • Kota</p>
+          <div class="links">
+            <a class="btn" href="https://github.com/USERNAME" target="_blank" rel="noopener">GitHub</a>
+            <a class="btn" href="https://www.linkedin.com/in/USERNAME" target="_blank" rel="noopener">LinkedIn</a>
+            <a class="btn" href="mailto:emailkamu@example.com">Email</a>
+          </div>
+        </div>
+      </header>
+
+      <section>
+        <h2>Tentang Saya</h2>
+        <p>Halo! Ini contoh situs bio yang bisa kamu host di GitHub Pages. Edit teks ini untuk menceritakan siapa kamu, skill utama, dan apa yang sedang kamu kerjakan.</p>
+      </section>
+
+      <section>
+        <h2>Playlist</h2>
+        <p class="note">Pilih salah satu metode di bawah: <strong>Spotify</strong>, <strong>YouTube</strong>, atau <strong>Audio lokal</strong>.</p>
+        <div class="grid">
+          <!-- === Opsi 1: Embed Spotify ===
+               Cara: Buka playlist di Spotify → Share → Embed playlist → Copy iframe → ganti iframe di bawah ini.
+               Pastikan "allow" mengandung autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture.
+          -->
+          <div class="playlist-embed">
+            <iframe title="Spotify playlist" loading="lazy"
+              src="https://open.spotify.com/embed/playlist/PLAYLIST_ID?utm_source=generator"
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture">
+            </iframe>
+          </div>
+
+          <!-- === Opsi 2: Embed YouTube Playlist ===
+               Cara: Buka playlist → Share → Copy playlist ID → ganti PLAYLIST_ID di URL di bawah.
+          -->
+          <div class="playlist-embed">
+            <iframe title="YouTube playlist" loading="lazy"
+              src="https://www.youtube.com/embed/videoseries?list=PLAYLIST_ID"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowfullscreen>
+            </iframe>
+          </div>
+        </div>
+
+        <!-- === Opsi 3: Audio lokal (file sendiri) ===
+             1) Buat folder "audio" di repo.
+             2) Upload file MP3/OGG kamu yang legal untuk dibagikan.
+             3) Perbarui daftar tracks di bawah dengan path file.
+        -->
+        <div class="audio-player" style="margin-top:16px; padding: 12px;">
+          <audio id="player" controls preload="metadata" style="width:100%"></audio>
+          <ul class="tracks" id="trackList"></ul>
+          <p class="note">Catatan: Jangan mengunggah musik berhak cipta tanpa izin. Gunakan karya sendiri atau lisensi bebas.</p>
+        </div>
+      </section>
+
+      <footer>
+        © <span id="year"></span> Nama Kamu • Dibangun dengan HTML/CSS/JS • Hosted di GitHub Pages
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    // ====== Audio lokal: daftar lagu contoh (ganti dengan punyamu) ======
+    const tracks = [
+      { title: "Contoh Lagu 1", file: "audio/lagu1.mp3" },
+      { title: "Contoh Lagu 2", file: "audio/lagu2.mp3" },
+    ];
+
+    const player = document.getElementById('player');
+    const list = document.getElementById('trackList');
+
+    function renderList() {
+      list.innerHTML = '';
+      tracks.forEach((t, i) => {
+        const li = document.createElement('li');
+        const left = document.createElement('span');
+        left.textContent = `${i+1}. ${t.title}`;
+        const playBtn = document.createElement('button');
+        playBtn.textContent = 'Putar';
+        playBtn.addEventListener('click', () => {
+          player.src = t.file; player.play();
+        });
+        li.appendChild(left); li.appendChild(playBtn);
+        list.appendChild(li);
+      });
+      if (tracks.length) { player.src = tracks[0].file; }
+    }
+
+    renderList();
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
