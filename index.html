@@ -3,80 +3,107 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Bio • Ilham Maulana</title>
-  <meta name="description" content="bio sederhana yang di-host di GitHub Pages, dengan playlist musik Favorit">
+  <title>Agus Ilham Maulana • illhm</title>
+  <meta name="description" content="Bio singkat Agus Ilham Maulana (illhm) — link, tentang saya, dan playlist Spotify." />
+  <meta property="og:title" content="Agus Ilham Maulana • illhm" />
+  <meta property="og:description" content="Bio singkat, link, dan playlist Spotify." />
+  <meta property="og:type" content="website" />
   <style>
     :root {
-      --bg: #0f172a;           /* slate-900 */
-      --bg2: #111827;          /* gray-900 */
-      --card: #111827;
-      --text: #e5e7eb;         /* gray-200 */
-      --muted: #9ca3af;        /* gray-400 */
-      --primary: #38bdf8;      /* sky-400 */
-      --ring: rgba(56,189,248,.35);
+      --bg: #0b1222; /* deep navy */
+      --bg2: #0f172a; /* slate-900 */
+      --card: #0e152b;
+      --text: #e7eaf3;
+      --muted: #a3adc2;
+      --line: color-mix(in oklab, #fff, transparent 90%);
+      --accent: #60a5fa; /* blue-400 */
+      --accent2: #22d3ee; /* cyan-400 */
+      --ring: rgba(96,165,250,.35);
+      --radius: 22px;
     }
     * { box-sizing: border-box; }
+    html, body { height: 100%; }
     body {
       margin: 0;
       font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
       color: var(--text);
-      background: radial-gradient(1200px 600px at 10% -10%, #0b1022 30%, transparent),
-                  radial-gradient(1200px 600px at 110% -10%, #08263a 30%, transparent),
-                  linear-gradient(180deg, var(--bg), var(--bg2));
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #0b1022 25%, transparent),
+        radial-gradient(1200px 600px at 110% -10%, #07243a 25%, transparent),
+        linear-gradient(180deg, var(--bg), var(--bg2));
       min-height: 100svh;
+      letter-spacing: .2px;
     }
-    .wrap { max-width: 880px; margin: 0 auto; padding: 24px; }
+    .wrap { max-width: 980px; margin: 0 auto; padding: 28px 18px 40px; }
+
     .card {
       background: color-mix(in oklab, var(--card), #ffffff 2%);
-      border: 1px solid color-mix(in oklab, #ffffff, transparent 90%);
-      box-shadow: 0 10px 30px rgba(0,0,0,.35);
-      border-radius: 20px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 12px 40px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.02);
       padding: 28px;
     }
-    header { display: grid; grid-template-columns: 96px 1fr; gap: 18px; align-items: center; }
-    .avatar { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary); }
-    h1 { margin: 0; font-size: 1.8rem; letter-spacing: .2px; }
-    .tagline { margin: 6px 0 0; color: var(--muted); }
 
-    .links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
-    .btn {
-      appearance: none; border: 1px solid color-mix(in oklab, #ffffff, transparent 88%);
-      background: #0b1324; color: var(--text); text-decoration: none; padding: 10px 14px; border-radius: 12px;
-      display: inline-flex; align-items: center; gap: 8px; font-weight: 600;
-      transition: transform .06s ease, border-color .2s ease, box-shadow .2s ease;
+    header.hero {
+      display: grid; gap: 18px; align-items: center;
+      grid-template-columns: 92px 1fr; margin-bottom: 8px;
     }
-    .btn:hover { transform: translateY(-1px); box-shadow: 0 6px 16px rgba(0,0,0,.35); border-color: var(--primary); }
+    .avatar {
+      width: 92px; height: 92px; border-radius: 50%; object-fit: cover;
+      border: 3px solid color-mix(in oklab, var(--accent), #fff 0%);
+      box-shadow: 0 6px 20px rgba(0,0,0,.35);
+      background: #0b1324;
+    }
+    h1.name { margin: 0; font-size: clamp(1.8rem, 3.2vw + 1rem, 2.6rem); line-height: 1.1; }
+    .grad {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .tagline { margin: 6px 0 0; color: var(--muted); font-weight: 500; }
+
+    .links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+    .btn {
+      appearance: none; border: 1px solid var(--line);
+      background: #0b1324; color: var(--text); text-decoration: none; padding: 10px 14px; border-radius: 12px;
+      display: inline-flex; align-items: center; gap: 8px; font-weight: 700; font-size: .95rem;
+      transition: transform .06s ease, border-color .2s ease, box-shadow .2s ease, background .2s ease;
+    }
+    .btn:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(0,0,0,.35); border-color: var(--accent); background: #0f1a33; }
 
     section { margin-top: 28px; }
-    section h2 { font-size: 1.2rem; margin: 0 0 10px; letter-spacing: .2px; }
-    p { color: var(--text); opacity: .9; line-height: 1.6; }
+    section h2 { font-size: 1.2rem; margin: 0 0 12px; letter-spacing: .2px; }
+    p { color: var(--text); opacity: .92; line-height: 1.65; }
 
-    .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+    .grid2 { display: grid; gap: 16px; grid-template-columns: 1fr; }
+    .grid3 { display: grid; gap: 14px; grid-template-columns: 1fr; }
 
-    .playlist-embed, .audio-player { width: 100%; border-radius: 14px; overflow: hidden; border: 1px solid color-mix(in oklab, #ffffff, transparent 88%); }
-    iframe { width: 100%; height: 400px; border: 0; display: block; }
+    .playlist-embed { width: 100%; border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: #0b1324; }
+    iframe { width: 100%; height: 420px; border: 0; display: block; }
 
-    .note { font-size: .9rem; color: var(--muted); }
+    .about {
+      display: grid; gap: 14px; grid-template-columns: 1fr; align-items: start;
+    }
+    .about .pillbox { display: flex; flex-wrap: wrap; gap: 8px; }
+    .pill { border: 1px solid var(--line); background: #0b1324; padding: 6px 10px; border-radius: 999px; font-size: .9rem; opacity: .95; }
 
-    ul.tracks { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
-    ul.tracks li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 10px; background: #0b1324; border: 1px solid color-mix(in oklab, #ffffff, transparent 90%); }
-    ul.tracks button { all: unset; cursor: pointer; font-weight: 600; color: var(--primary); }
+    footer { margin-top: 26px; color: var(--muted); font-size: .86rem; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
 
-    footer { margin-top: 24px; color: var(--muted); font-size: .85rem; }
     @media (min-width: 768px) {
-      .grid { grid-template-columns: 1fr 1fr; }
+      header.hero { grid-template-columns: 108px 1fr; }
+      .grid2 { grid-template-columns: 1fr 1fr; }
+      .grid3 { grid-template-columns: repeat(3, 1fr); }
+      .about { grid-template-columns: 1.2fr .8fr; }
     }
   </style>
 </head>
 <body>
   <div class="wrap">
     <div class="card" role="main">
-      <header>
-        <!-- Ganti src dengan fotomu -->
+      <header class="hero">
         <img class="avatar" src="https://avatars.githubusercontent.com/u/583231?v=4" alt="Foto profil" />
         <div>
-          <h1>Agus Ilham Maulana</h1>
-          <p class="tagline">Just being who I am • Pekerjaan/PT HANDAL SUKSES KARYA • Kota/Rembang</p>
+          <h1 class="name"><span class="grad">Agus Ilham Maulana</span></h1>
+          <p class="tagline">Just being who I am • PT HANDAL SUKSES KARYA • Rembang</p>
           <div class="links">
             <a class="btn" href="https://github.com/Illhm" target="_blank" rel="noopener">GitHub</a>
             <a class="btn" href="https://www.instagram.com/ilhmm.io" target="_blank" rel="noopener">Instagram</a>
@@ -87,32 +114,53 @@
 
       <section>
         <h2>Tentang Saya</h2>
-        <p>Halo! Ini contoh situs bio yang bisa kamu host di GitHub Pages. Edit teks ini untuk menceritakan siapa kamu, skill utama, dan apa yang sedang kamu kerjakan.</p>
-      </section>
-      <section>
-        <h2>Playlist (Spotify)</h2>
-        <p class="note">Dari track yang kamu kirim.</p>
-        <div class="grid">
-          <div class="playlist-embed">
-            <iframe title="Spotify track 1" loading="lazy" src="https://open.spotify.com/embed/track/64CqnwntimLdXXIoyMdOXg" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+        <div class="about">
+          <div>
+            <p>Halo! Saya <strong>Agus Ilham Maulana</strong> (illhm). Saya suka hal‑hal yang rapi, sederhana, dan fungsional. Saat ini berkarya di <strong>PT HANDAL SUKSES KARYA</strong> dan berdomisili di <strong>Rembang</strong>. Di waktu luang, saya mengutak‑atik halaman web statis, menulis catatan pendek, dan merapikan portofolio kecil.
+            </p>
+            <p>Sedang belajar dan mengeksplor <em>GitHub Pages</em>, HTML/CSS, dasar JavaScript, serta UI minimalis. Musik sering diputar: <strong>Hindia</strong>. Kalau mau kolab atau sekadar say hi, silakan email ya 👋.</p>
+            <div class="pillbox" aria-label="Highlight">
+              <span class="pill">GitHub Pages</span>
+              <span class="pill">HTML/CSS/JS</span>
+              <span class="pill">UI Minimalis</span>
+              <span class="pill">Writing</span>
+            </div>
           </div>
-          <div class="playlist-embed">
-            <iframe title="Spotify track 2" loading="lazy" src="https://open.spotify.com/embed/track/5WOSNVChcadlsCRiqXE45K" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+          <div>
+            <div class="card" style="padding:16px; background: #0c142a;">
+              <p style="margin:0 0 8px; color: var(--muted)">Kontak cepat</p>
+              <div class="links">
+                <a class="btn" href="https://github.com/Illhm" target="_blank" rel="noopener">@Illhm</a>
+                <a class="btn" href="https://www.instagram.com/ilhmm.io" target="_blank" rel="noopener">@ilhmm.io</a>
+                <a class="btn" href="mailto:diru768@gmail.com">diru768@gmail.com</a>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      
+      <section>
+        <h2>Playlist (Spotify)</h2>
+        <p class="note" style="color: var(--muted); margin-top:-4px">Dua lagu favorit yang lagi diputar.</p>
+        <div class="grid2">
+          <div class="playlist-embed">
+            <iframe title="Spotify: letdown — Hindia" loading="lazy" src="https://open.spotify.com/embed/track/64CqnwntimLdXXIoyMdOXg" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+          </div>
+          <div class="playlist-embed">
+            <iframe title="Spotify: everything u are — Hindia" loading="lazy" src="https://open.spotify.com/embed/track/5WOSNVChcadlsCRiqXE45K" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"></iframe>
+          </div>
+        </div>
+      </section>
 
       <footer>
-        © <span id="year"></span> Ilham Maulana• Dibangun dengan HTML/CSS/JS • Hosted di GitHub Pages
+        <span>© <span id="year"></span> Ilham Maulana</span>
+        <span>Dibangun dengan HTML/CSS/JS • Hosted di GitHub Pages</span>
       </footer>
     </div>
   </div>
 
   <script>
-  // Hanya untuk tahun di footer
-  document.getElementById('year').textContent = new Date().getFullYear();
-</script>
+    document.getElementById('year').textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
