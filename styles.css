@@ -183,30 +183,6 @@ p {
   line-height: 1.65;
 }
 
-.grid2 {
-  display: grid;
-  gap: 16px;
-  grid-template-columns: 1fr;
-}
-.grid3 {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: 1fr;
-}
-
-.playlist-embed {
-  width: 100%;
-  border-radius: 16px;
-  overflow: hidden;
-  border: 1px solid var(--line);
-  background: #0b1324;
-}
-iframe {
-  width: 100%;
-  height: 420px;
-  border: 0;
-  display: block;
-}
 
 .about {
   display: grid;
@@ -256,12 +232,6 @@ footer {
 @media (min-width: 768px) {
   header.hero {
     grid-template-columns: 108px 1fr;
-  }
-  .grid2 {
-    grid-template-columns: 1fr 1fr;
-  }
-  .grid3 {
-    grid-template-columns: repeat(3, 1fr);
   }
   .about {
     grid-template-columns: 1.2fr 0.8fr;
