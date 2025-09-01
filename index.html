@@ -156,32 +156,67 @@
         <section>
           <h2>Playlist</h2>
           <p class="note">lagu favorit ku, yang sering ku putar.</p>
+
           <div class="music-player">
-            <img
-              class="music-cover"
-              src="https://image-cdn-ak.spotifycdn.com/image/ab67616d00001e0205898628baab6ef07a0a4d03"
-              alt="Sampul album letdown"
-            />
-            <div class="music-info">
-              <h3 class="music-title">letdown — Hindia</h3>
-              <audio
-                id="song-player"
-                controls
-                preload="auto"
-                src="letdown.mp3"
-              ></audio>
+            <div class="cover-wrap">
+              <img
+                class="music-cover"
+                src="https://image-cdn-ak.spotifycdn.com/image/ab67616d00001e0205898628baab6ef07a0a4d03"
+                alt="Sampul album letdown"
+              />
+              <svg class="spotify-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.482 17.321a.747.747 0 0 1-1.027.25c-2.812-1.716-6.356-2.105-10.549-1.157a.75.75 0 1 1-.33-1.463c4.615-1.04 8.542-.592 11.664 1.328a.747.747 0 0 1 .242 1.042zm1.465-3.244a.94.94 0 0 1-1.291.314c-3.218-1.978-8.127-2.553-11.927-1.402a.938.938 0 0 1-1.162-.659.94.94 0 0 1 .659-1.162c4.295-1.3 9.71-.651 13.38 1.584a.94.94 0 0 1 .341 1.325zM19.03 9.27c-3.676-2.186-9.708-2.39-13.23-1.314a1.125 1.125 0 1 1-.662-2.156c4.124-1.267 10.917-1.03 15.128 1.475a1.125 1.125 0 0 1-1.236 1.995z"
+                />
+              </svg>
             </div>
+            <div class="music-bar">
+              <div class="music-info">
+                <h3 class="music-title">letdown</h3>
+                <p class="music-sub">Preview — Hindia</p>
+                <a class="spotify-link" href="#" target="_blank" rel="noopener"
+                  >Save on Spotify</a
+                >
+              </div>
+              <button class="play-btn" aria-label="Putar">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="currentColor" d="M8 5v14l11-7z" />
+                </svg>
+              </button>
+            </div>
+            <audio preload="auto" src="letdown.mp3"></audio>
           </div>
+
           <div class="music-player">
-            <img
-              class="music-cover"
-              src="https://image-cdn-ak.spotifycdn.com/image/ab67616d00001e0205898628baab6ef07a0a4d03"
-              alt="Sampul album everything u are"
-            />
-            <div class="music-info">
-              <h3 class="music-title">everything u are — Hindia</h3>
-              <audio controls preload="auto" src="everything-u-are-Hindia.mp3"></audio>
+            <div class="cover-wrap">
+              <img
+                class="music-cover"
+                src="https://image-cdn-ak.spotifycdn.com/image/ab67616d00001e0205898628baab6ef07a0a4d03"
+                alt="Sampul album everything u are"
+              />
+              <svg class="spotify-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  fill="currentColor"
+                  d="M12 0C5.373 0 0 5.373 0 12s5.373 12 12 12 12-5.373 12-12S18.627 0 12 0zm5.482 17.321a.747.747 0 0 1-1.027.25c-2.812-1.716-6.356-2.105-10.549-1.157a.75.75 0 1 1-.33-1.463c4.615-1.04 8.542-.592 11.664 1.328a.747.747 0 0 1 .242 1.042zm1.465-3.244a.94.94 0 0 1-1.291.314c-3.218-1.978-8.127-2.553-11.927-1.402a.938.938 0 0 1-1.162-.659.94.94 0 0 1 .659-1.162c4.295-1.3 9.71-.651 13.38 1.584a.94.94 0 0 1 .341 1.325zM19.03 9.27c-3.676-2.186-9.708-2.39-13.23-1.314a1.125 1.125 0 1 1-.662-2.156c4.124-1.267 10.917-1.03 15.128 1.475a1.125 1.125 0 0 1-1.236 1.995z"
+                />
+              </svg>
             </div>
+            <div class="music-bar">
+              <div class="music-info">
+                <h3 class="music-title">everything u are</h3>
+                <p class="music-sub">Preview — Hindia</p>
+                <a class="spotify-link" href="#" target="_blank" rel="noopener"
+                  >Save on Spotify</a
+                >
+              </div>
+              <button class="play-btn" aria-label="Putar">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path fill="currentColor" d="M8 5v14l11-7z" />
+                </svg>
+              </button>
+            </div>
+            <audio preload="auto" src="everything-u-are-Hindia.mp3"></audio>
           </div>
         </section>
 
@@ -194,6 +229,37 @@
 
     <script>
       document.getElementById("year").textContent = new Date().getFullYear();
+      const playIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
+      const pauseIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19h4V5H6zm8-14v14h4V5h-4z"/></svg>';
+      let currentAudio = null;
+      document.querySelectorAll('.music-player').forEach(player => {
+        const audio = player.querySelector('audio');
+        const btn = player.querySelector('.play-btn');
+        btn.addEventListener('click', () => {
+          if (audio.paused) {
+            if (currentAudio && currentAudio !== audio) {
+              currentAudio.pause();
+              const otherBtn = currentAudio.closest('.music-player').querySelector('.play-btn');
+              otherBtn.innerHTML = playIcon;
+              otherBtn.setAttribute('aria-label', 'Putar');
+            }
+            audio.play();
+            btn.innerHTML = pauseIcon;
+            btn.setAttribute('aria-label', 'Jeda');
+            currentAudio = audio;
+          } else {
+            audio.pause();
+            btn.innerHTML = playIcon;
+            btn.setAttribute('aria-label', 'Putar');
+            currentAudio = null;
+          }
+        });
+        audio.addEventListener('ended', () => {
+          btn.innerHTML = playIcon;
+          btn.setAttribute('aria-label', 'Putar');
+          if (currentAudio === audio) currentAudio = null;
+        });
+      });
     </script>
   </body>
 </html>
