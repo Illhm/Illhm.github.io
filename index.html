@@ -232,6 +232,13 @@
           </div>
         </section>
 
+        <section>
+          <h2>Galeri</h2>
+          <div class="gallery-container">
+            <div class="gallery-scroll" id="gallery"></div>
+          </div>
+        </section>
+
         <footer>
           <span>© <span id="year"></span> Ilham Maulana</span>
           <span>Dibangun dengan HTML/CSS/JS • Hosted di GitHub Pages</span>
@@ -272,6 +279,28 @@
           if (currentAudio === audio) currentAudio = null;
         });
       });
+
+      async function loadGallery() {
+        const container = document.getElementById('gallery');
+        if (!container) return;
+        const host = window.location.hostname;
+        const owner = host.includes('.') ? host.split('.')[0] : 'Illhm';
+        const repo = `${owner}.github.io`;
+        try {
+          const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/gallery`);
+          const files = await res.json();
+          files.filter(f => f.type === 'file').forEach(f => {
+            const img = document.createElement('img');
+            img.src = f.download_url;
+            img.alt = f.name;
+            img.loading = 'lazy';
+            container.appendChild(img);
+          });
+        } catch (err) {
+          console.error('Failed to load gallery', err);
+        }
+      }
+      loadGallery();
     </script>
   </body>
 </html>

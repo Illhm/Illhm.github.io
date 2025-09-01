@@ -68,6 +68,23 @@ body {
   margin-top: -4px;
 }
 
+.gallery-container {
+  overflow-x: auto;
+  margin-top: 16px;
+}
+
+.gallery-scroll {
+  display: flex;
+  gap: 16px;
+}
+
+.gallery-scroll img {
+  height: 180px;
+  border-radius: 16px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
 .music-list {
     display: grid;
     gap: 24px;
