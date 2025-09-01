@@ -68,15 +68,20 @@ body {
   margin-top: -4px;
 }
 
-.music-player {
-  display: flex;
-  flex-direction: column;
-  padding: 16px;
-  margin: 16px 0 24px;
-  background: #0b1324;
-  border: 1px solid var(--line);
-  border-radius: 20px;
-}
+.music-list {
+    display: grid;
+    gap: 24px;
+    margin-top: 16px;
+  }
+
+  .music-player {
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    background: #0b1324;
+    border: 1px solid var(--line);
+    border-radius: 20px;
+  }
 
 .album {
   position: relative;
@@ -298,11 +303,14 @@ footer {
   flex-wrap: wrap;
 }
 
-@media (min-width: 768px) {
-  header.hero {
-    grid-template-columns: 108px 1fr;
+  @media (min-width: 768px) {
+    header.hero {
+      grid-template-columns: 108px 1fr;
+    }
+    .about {
+      grid-template-columns: 1.2fr 0.8fr;
+    }
+    .music-list {
+      grid-template-columns: 1fr 1fr;
+    }
   }
-  .about {
-    grid-template-columns: 1.2fr 0.8fr;
-  }
-}

@@ -157,17 +157,18 @@
           <h2>Playlist</h2>
           <p class="note">lagu favorit ku, yang sering ku putar.</p>
 
-          <div class="music-player">
-            <div class="album">
-              <img
-                class="music-cover"
-                src="https://image-cdn-ak.spotifycdn.com/image/ab67616d00001e0205898628baab6ef07a0a4d03"
-                alt="Sampul album letdown"
-              />
-              <span class="spotify-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    fill="currentColor"
+          <div class="music-list">
+            <div class="music-player">
+              <div class="album">
+                <img
+                  class="music-cover"
+                  src="https://image-cdn-ak.spotifycdn.com/image/ab67616d00001e0205898628baab6ef07a0a4d03"
+                  alt="Sampul album letdown"
+                />
+                <span class="spotify-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      fill="currentColor"
                     d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24zm5.163 17.354a.75.75 0 0 1-1.036.249c-2.84-1.738-6.418-2.132-10.621-1.171a.75.75 0 1 1-.342-1.462c4.55-1.062 8.463-.611 11.584 1.287a.75.75 0 0 1 .415.835zm1.48-3.294a.94.94 0 0 1-1.302.31c-3.247-1.99-8.208-2.57-12.051-1.414a.94.94 0 1 1-.558-1.804c4.27-1.32 9.703-.67 13.468 1.58a.94.94 0 0 1 .443 1.328zm.131-3.408c-3.633-2.156-9.14-2.352-12.421-1.29a1.13 1.13 0 1 1-.668-2.162c4.043-1.25 10.2-1.012 14.35 1.455a1.13 1.13 0 0 1-1.261 1.997z"
                   />
                 </svg>
@@ -177,56 +178,57 @@
                   <path fill="currentColor" d="M8 5v14l11-7z" />
                 </svg>
               </button>
+              </div>
+              <h3 class="music-title">letdown</h3>
+              <p class="music-artist">Hindia</p>
+              <div class="music-actions">
+                <span class="preview-tag">Preview</span>
+                <a
+                  class="save-link"
+                  href="https://open.spotify.com/search/letdown%20hindia"
+                  target="_blank"
+                  rel="noopener"
+                  >Save on Spotify</a
+                >
+              </div>
+              <audio preload="auto" src="letdown.mp3"></audio>
             </div>
-            <h3 class="music-title">letdown</h3>
-            <p class="music-artist">Hindia</p>
-            <div class="music-actions">
-              <span class="preview-tag">Preview</span>
-              <a
-                class="save-link"
-                href="https://open.spotify.com/search/letdown%20hindia"
-                target="_blank"
-                rel="noopener"
-                >Save on Spotify</a
-              >
-            </div>
-            <audio preload="auto" src="letdown.mp3"></audio>
-          </div>
 
-          <div class="music-player">
-            <div class="album">
-              <img
-                class="music-cover"
-                src="https://image-cdn-ak.spotifycdn.com/image/ab67616d00001e0205898628baab6ef07a0a4d03"
-                alt="Sampul album everything u are"
-              />
-              <span class="spotify-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path
-                    fill="currentColor"
-                    d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24zm5.163 17.354a.75.75 0 0 1-1.036.249c-2.84-1.738-6.418-2.132-10.621-1.171a.75.75 0 1 1-.342-1.462c4.55-1.062 8.463-.611 11.584 1.287a.75.75 0 0 1 .415.835zm1.48-3.294a.94.94 0 0 1-1.302.31c-3.247-1.99-8.208-2.57-12.051-1.414a.94.94 0 1 1-.558-1.804c4.27-1.32 9.703-.67 13.468 1.58a.94.94 0 0 1 .443 1.328zm.131-3.408c-3.633-2.156-9.14-2.352-12.421-1.29a1.13 1.13 0 1 1-.668-2.162c4.043-1.25 10.2-1.012 14.35 1.455a1.13 1.13 0 0 1-1.261 1.997z"
-                  />
-                </svg>
-              </span>
-              <button class="play-btn" aria-label="Putar">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path fill="currentColor" d="M8 5v14l11-7z" />
-                </svg>
-              </button>
+            <div class="music-player">
+              <div class="album">
+                <img
+                  class="music-cover"
+                  src="https://image-cdn-ak.spotifycdn.com/image/ab67616d00001e0205898628baab6ef07a0a4d03"
+                  alt="Sampul album everything u are"
+                />
+                <span class="spotify-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path
+                      fill="currentColor"
+                      d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24zm5.163 17.354a.75.75 0 0 1-1.036.249c-2.84-1.738-6.418-2.132-10.621-1.171a.75.75 0 1 1-.342-1.462c4.55-1.062 8.463-.611 11.584 1.287a.75.75 0 0 1 .415.835zm1.48-3.294a.94.94 0 0 1-1.302.31c-3.247-1.99-8.208-2.57-12.051-1.414a.94.94 0 1 1-.558-1.804c4.27-1.32 9.703-.67 13.468 1.58a.94.94 0 0 1 .443 1.328zm.131-3.408c-3.633-2.156-9.14-2.352-12.421-1.29a1.13 1.13 0 1 1-.668-2.162c4.043-1.25 10.2-1.012 14.35 1.455a1.13 1.13 0 0 1-1.261 1.997z"
+                    />
+                  </svg>
+                </span>
+                <button class="play-btn" aria-label="Putar">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path fill="currentColor" d="M8 5v14l11-7z" />
+                  </svg>
+                </button>
+              </div>
+              <h3 class="music-title">everything u are</h3>
+              <p class="music-artist">Hindia</p>
+              <div class="music-actions">
+                <span class="preview-tag">Preview</span>
+                <a
+                  class="save-link"
+                  href="https://open.spotify.com/search/everything%20u%20are%20hindia"
+                  target="_blank"
+                  rel="noopener"
+                  >Save on Spotify</a
+                >
+              </div>
+              <audio preload="auto" src="everything-u-are-Hindia.mp3"></audio>
             </div>
-            <h3 class="music-title">everything u are</h3>
-            <p class="music-artist">Hindia</p>
-            <div class="music-actions">
-              <span class="preview-tag">Preview</span>
-              <a
-                class="save-link"
-                href="https://open.spotify.com/search/everything%20u%20are%20hindia"
-                target="_blank"
-                rel="noopener"
-                >Save on Spotify</a
-              >
-            </div>
-            <audio preload="auto" src="everything-u-are-Hindia.mp3"></audio>
           </div>
         </section>
 
