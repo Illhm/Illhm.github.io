@@ -294,6 +294,9 @@
             img.src = f.download_url;
             img.alt = f.name;
             img.loading = 'lazy';
+            img.draggable = false;
+            img.addEventListener('contextmenu', e => e.preventDefault());
+            img.addEventListener('dragstart', e => e.preventDefault());
             container.appendChild(img);
           });
         } catch (err) {
@@ -301,6 +304,22 @@
         }
       }
       loadGallery();
+
+      document.addEventListener('contextmenu', e => {
+        if (e.target.closest('#gallery')) {
+          e.preventDefault();
+        }
+      });
+
+      document.addEventListener('keydown', e => {
+        if (
+          e.key === 'F12' ||
+          (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key)) ||
+          (e.ctrlKey && ['S', 'U'].includes(e.key))
+        ) {
+          e.preventDefault();
+        }
+      });
     </script>
   </body>
 </html>

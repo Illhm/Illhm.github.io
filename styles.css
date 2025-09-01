@@ -98,6 +98,8 @@ body {
     background: #0b1324;
     border: 1px solid var(--line);
     border-radius: 20px;
+    max-width: 260px;
+    margin: 0 auto;
   }
 
 .album {
@@ -133,8 +135,8 @@ body {
   position: absolute;
   bottom: 16px;
   right: 16px;
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   border: none;
   border-radius: 50%;
   background: #fff;
@@ -147,8 +149,8 @@ body {
 }
 
 .play-btn svg {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
 }
 
 .music-title {
