@@ -68,6 +68,38 @@ body {
   margin-top: -4px;
 }
 
+.music-player {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  margin: 16px 0 24px;
+  background: #0b1324;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.music-cover {
+  width: 96px;
+  height: 96px;
+  border-radius: 12px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.music-info {
+  flex: 1;
+}
+
+.music-title {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.music-info audio {
+  width: 100%;
+}
+
 header.hero {
   display: grid;
   gap: 18px;
