@@ -157,6 +157,24 @@
           <h2>Playlist</h2>
           <p class="note">lagu favorit ku, yang sering ku putar.</p>
 
+          <div class="spotify-widget" aria-label="Playlist Spotify favorit">
+            <iframe
+              title="Spotify playlist favorit"
+              src="https://open.spotify.com/embed/playlist/37i9dQZF1DX4Wsb4d7NKfP?utm_source=generator"
+              data-playlist-short="https://spotify.link/7FqoISKXIXb"
+              allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+              loading="lazy"
+            ></iframe>
+            <a
+              class="btn spotify-button"
+              href="https://spotify.link/7FqoISKXIXb"
+              target="_blank"
+              rel="noopener"
+            >
+              🎧 Buka di Spotify
+            </a>
+          </div>
+
           <div class="music-list">
             <div class="music-player">
               <div class="album">
@@ -304,6 +322,29 @@
         }
       }
       loadGallery();
+
+      const playlistFrame = document.querySelector('.spotify-widget iframe');
+      const playlistShort = playlistFrame?.dataset.playlistShort;
+
+      if (playlistFrame && playlistShort) {
+        const resolveSpotifyEmbed = async () => {
+          try {
+            const response = await fetch(
+              `https://open.spotify.com/oembed?url=${encodeURIComponent(playlistShort)}`
+            );
+            if (!response.ok) return;
+            const data = await response.json();
+            const match = data.html?.match(/src="([^"]+)"/i);
+            if (match && match[1]) {
+              playlistFrame.src = match[1];
+            }
+          } catch (err) {
+            console.warn('Failed to resolve Spotify embed', err);
+          }
+        };
+
+        resolveSpotifyEmbed();
+      }
 
       document.addEventListener('contextmenu', e => {
         if (e.target.closest('#gallery')) {

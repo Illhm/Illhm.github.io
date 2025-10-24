@@ -91,6 +91,43 @@ body {
     margin-top: 16px;
   }
 
+.spotify-widget {
+  margin-top: 20px;
+  display: grid;
+  gap: 18px;
+  justify-items: center;
+  width: 100%;
+}
+
+.spotify-widget iframe {
+  width: min(100%, 520px);
+  min-height: 420px;
+  border: 0;
+  border-radius: 18px;
+  background: #000;
+}
+
+.spotify-button {
+  justify-content: center;
+  background: #1db954;
+  border-color: transparent;
+  color: #0b1222;
+  box-shadow: 0 12px 30px rgba(29, 185, 84, 0.35);
+  font-weight: 700;
+  width: min(100%, 320px);
+}
+
+.spotify-button:hover {
+  background: #1ed760;
+  border-color: transparent;
+}
+
+@media (max-width: 600px) {
+  .spotify-widget iframe {
+    min-height: 360px;
+  }
+}
+
   .music-player {
     display: flex;
     flex-direction: column;
