@@ -100,8 +100,8 @@ body {
 }
 
 .spotify-widget iframe {
-  width: min(100%, 520px);
-  min-height: 420px;
+  width: min(100%, 460px);
+  height: clamp(360px, 60vw, 420px);
   border: 0;
   border-radius: 18px;
   background: #000;
@@ -124,7 +124,7 @@ body {
 
 @media (max-width: 600px) {
   .spotify-widget iframe {
-    min-height: 360px;
+    height: clamp(320px, 75vw, 380px);
   }
 }
 
