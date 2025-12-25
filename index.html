@@ -761,7 +761,7 @@
       }
 
       async function loadGallery() {
-        const container = document.getElementById('gallery');
+        const container = document.getElementById('galery');
         if (!container) return;
 
         const { owner, repo } = resolveGalleryRepo(container);
@@ -782,7 +782,7 @@
 
         try {
           const res = await fetch(
-            `https://api.github.com/repos/${owner}/${repo}/contents/gallery`
+            `https://api.github.com/repos/${owner}/${repo}/contents/galery`
           );
           if (!res.ok) {
             throw new Error(`GitHub API error: ${res.status}`);
@@ -819,7 +819,7 @@
       loadGallery();
 
       document.addEventListener('contextmenu', e => {
-        if (e.target.closest('#gallery')) {
+        if (e.target.closest('#galery')) {
           e.preventDefault();
         }
       });
