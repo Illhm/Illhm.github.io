@@ -82,7 +82,7 @@
               <p>
                 Halo! Saya <strong>Agus Ilham Maulana</strong> (Ilham). Saya
                 suka hal‑hal yang rapi, sederhana, dan fungsional. Saat ini
-                Berkerja di <strong>PT HANDAL SUKSES KARYA</strong> dan
+                Bekerja di <strong>PT HANDAL SUKSES KARYA</strong> dan
                 berdomisili di <strong>Rembang</strong>. Di waktu luang, saya
                 mengutak‑atik halaman web.
               </p>
@@ -96,7 +96,7 @@
                 berbagi hal-hal baru seputar teknologi.
               </p>
               <ul class="about-list" aria-label="Detail singkat">
-                <li><strong>Fokus saat ini:</strong> Front-end dasar & Ui minimalis</li>
+                <li><strong>Fokus saat ini:</strong> Front-end dasar & UI minimalis</li>
                 <li><strong>Hobi:</strong>  Konser, ngoding, desain</li>
                 <li><strong>Motto:</strong> Just being who I am</li>
               </ul>
@@ -172,7 +172,7 @@
               <div class="spotify-meta">
                 <p class="spotify-title">Favorit terbaru minggu ini</p>
                 <p class="spotify-note">
-                  Auto update dari FabDL + cache ringan agar tetap cepat.
+                  Auto update dari Spotmate + cache ringan agar tetap cepat.
                 </p>
               </div>
               <a
@@ -526,113 +526,97 @@
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
       const pauseIcon =
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19h4V5H6zm8-14v14h4V5h-4z"/></svg>';
-      const FABDL_BASE_URL = 'https://api.fabdl.com';
-      const FABDL_CACHE_KEY = 'fabdl-favorites-v2';
-      const FABDL_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
-      const FABDL_POLL_INTERVAL = 1200;
-      const FABDL_POLL_ATTEMPTS = 6;
-      const fabdlRequests = new Map();
+      const SPOTMATE_BASE_URL = 'https://spotmate.online';
+      const SPOTMATE_CACHE_KEY = 'spotmate-favorites-v1';
+      const SPOTMATE_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
+      const spotmateRequests = new Map();
       let currentAudio = null;
 
-      function readFabdlCache() {
+      function readSpotmateCache() {
         try {
-          const raw = localStorage.getItem(FABDL_CACHE_KEY);
+          const raw = localStorage.getItem(SPOTMATE_CACHE_KEY);
           return raw ? JSON.parse(raw) : {};
         } catch (error) {
-          console.warn('FabDL cache reset', error);
+          console.warn('Spotmate cache reset', error);
           return {};
         }
       }
 
-      const fabdlCache = readFabdlCache();
+      const spotmateCache = readSpotmateCache();
 
-      function persistFabdlCache() {
+      function persistSpotmateCache() {
         try {
-          localStorage.setItem(FABDL_CACHE_KEY, JSON.stringify(fabdlCache));
+          localStorage.setItem(SPOTMATE_CACHE_KEY, JSON.stringify(spotmateCache));
         } catch (error) {
-          console.warn('FabDL cache write failed', error);
+          console.warn('Spotmate cache write failed', error);
         }
       }
 
       function getCachedTrack(spotifyUrl) {
-        const cached = fabdlCache[spotifyUrl];
+        const cached = spotmateCache[spotifyUrl];
         if (!cached) return null;
-        if (Date.now() - cached.fetchedAt > FABDL_CACHE_TTL) {
+        if (Date.now() - cached.fetchedAt > SPOTMATE_CACHE_TTL) {
           return null;
         }
         return cached;
       }
 
       function updateTrackCache(spotifyUrl, data) {
-        fabdlCache[spotifyUrl] = { ...data, fetchedAt: Date.now() };
-        persistFabdlCache();
+        spotmateCache[spotifyUrl] = { ...data, fetchedAt: Date.now() };
+        persistSpotmateCache();
       }
 
-      function delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
-      }
-
-      async function fetchFabdlJson(path) {
-        const response = await fetch(`${FABDL_BASE_URL}${path}`, {
-          cache: 'no-store',
+      async function fetchSpotmateJson(path, payload) {
+        const response = await fetch(`${SPOTMATE_BASE_URL}${path}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
         });
         if (!response.ok) {
-          throw new Error(`FabDL error ${response.status}`);
+          throw new Error(`Spotmate error ${response.status}`);
         }
         return response.json();
       }
 
-      async function fetchFabdlMetadata(spotifyUrl) {
-        if (fabdlRequests.has(spotifyUrl)) {
-          return fabdlRequests.get(spotifyUrl);
+      async function fetchSpotmateMetadata(spotifyUrl) {
+        if (spotmateRequests.has(spotifyUrl)) {
+          return spotmateRequests.get(spotifyUrl);
         }
 
         const request = (async () => {
-          const trackPayload = await fetchFabdlJson(
-            `/spotify/get?url=${encodeURIComponent(spotifyUrl)}`
-          );
-          const track = trackPayload?.result;
-          if (!track?.id || !track?.gid) {
-            throw new Error('FabDL track metadata kosong');
+          const trackPayload = await fetchSpotmateJson('/getTrackData', {
+            spotify_url: spotifyUrl,
+          });
+          if (!trackPayload?.id || trackPayload?.type !== 'track') {
+            throw new Error('Spotmate track metadata kosong');
           }
 
-          const taskPayload = await fetchFabdlJson(
-            `/spotify/mp3-convert-task/${track.gid}/${track.id}`
-          );
-          let task = taskPayload?.result;
-          if (!task?.tid) {
-            throw new Error('FabDL task belum siap');
+          const convertPayload = await fetchSpotmateJson('/convert', {
+            urls: spotifyUrl,
+          });
+          const audioUrl = convertPayload?.url || '';
+          if (convertPayload?.error !== false || !audioUrl) {
+            throw new Error('Spotmate convert belum siap');
           }
 
-          let downloadUrl = task.download_url;
-          let status = task.status;
-
-          for (let attempt = 0; attempt < FABDL_POLL_ATTEMPTS; attempt += 1) {
-            if (status === 3 && downloadUrl) break;
-            await delay(FABDL_POLL_INTERVAL);
-            const progressPayload = await fetchFabdlJson(
-              `/spotify/mp3-convert-progress/${task.tid}`
-            );
-            task = progressPayload?.result ?? task;
-            status = task.status;
-            downloadUrl = task.download_url;
-          }
-
-          const audioUrl = downloadUrl
-            ? new URL(downloadUrl, FABDL_BASE_URL).toString()
+          const coverUrl = trackPayload?.album?.images?.[0]?.url || '';
+          const artistNames = Array.isArray(trackPayload?.artists)
+            ? trackPayload.artists.map(artist => artist.name).join(', ')
             : '';
 
           return {
             audioUrl,
-            thumbnailUrl: track.image,
-            title: track.name,
-            artist: track.artists,
+            thumbnailUrl: coverUrl,
+            title: trackPayload?.name,
+            artist: artistNames,
           };
         })().finally(() => {
-          fabdlRequests.delete(spotifyUrl);
+          spotmateRequests.delete(spotifyUrl);
         });
 
-        fabdlRequests.set(spotifyUrl, request);
+        spotmateRequests.set(spotifyUrl, request);
         return request;
       }
 
@@ -700,7 +684,7 @@
         }
         setPlayerState(player, 'loading', 'Memuat...');
         try {
-          const data = await fetchFabdlMetadata(spotifyUrl);
+          const data = await fetchSpotmateMetadata(spotifyUrl);
           applyTrackMetadata(player, data);
           updateTrackCache(spotifyUrl, data);
           if (!data.audioUrl) {
@@ -708,7 +692,7 @@
           }
           setPlayerState(player, 'ready', 'Streaming');
         } catch (error) {
-          console.error('Gagal memuat data FabDL', error);
+          console.error('Gagal memuat data Spotmate', error);
           applyFallbackMetadata(player);
           setPlayerState(
             player,
