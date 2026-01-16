@@ -172,7 +172,7 @@
               <div class="spotify-meta">
                 <p class="spotify-title">Favorit terbaru minggu ini</p>
                 <p class="spotify-note">
-                  Auto update dari SpotDL + cache ringan agar tetap cepat.
+                  Auto update dari FabDL + cache ringan agar tetap cepat.
                 </p>
               </div>
               <a
@@ -526,6 +526,7 @@
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
       const pauseIcon =
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19h4V5H6zm8-14v14h4V5h-4z"/></svg>';
+#<<<<<<< fabdl-streaming-implementation-17517336698426992768
       const FABDL_API = 'https://api.fabdl.com';
       const TRACK_CACHE_KEY = 'fabdl-cache-v1';
       const TRACK_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
@@ -538,10 +539,27 @@
           return raw ? JSON.parse(raw) : {};
         } catch (error) {
           console.warn('Track cache reset', error);
+#=======
+      const FABDL_BASE_URL = 'https://api.fabdl.com';
+      const FABDL_CACHE_KEY = 'fabdl-favorites-v1';
+      const FABDL_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
+      const FABDL_POLL_INTERVAL = 1200;
+      const FABDL_POLL_ATTEMPTS = 6;
+      const fabdlRequests = new Map();
+      let currentAudio = null;
+
+      function readFabdlCache() {
+        try {
+          const raw = localStorage.getItem(FABDL_CACHE_KEY);
+          return raw ? JSON.parse(raw) : {};
+        } catch (error) {
+          console.warn('FabDL cache reset', error);
+#>>>>>>> main
           return {};
         }
       }
 
+#<<<<<<< fabdl-streaming-implementation-17517336698426992768
       const trackCache = readTrackCache();
 
       function persistTrackCache() {
@@ -549,19 +567,35 @@
           localStorage.setItem(TRACK_CACHE_KEY, JSON.stringify(trackCache));
         } catch (error) {
           console.warn('Track cache write failed', error);
+#=======
+      const fabdlCache = readFabdlCache();
+
+      function persistFabdlCache() {
+        try {
+          localStorage.setItem(FABDL_CACHE_KEY, JSON.stringify(fabdlCache));
+        } catch (error) {
+          console.warn('FabDL cache write failed', error);
+#>>>>>>> main
         }
       }
 
       function getCachedTrack(spotifyUrl) {
+#<<<<<<< fabdl-streaming-implementation-17517336698426992768
         const cached = trackCache[spotifyUrl];
         if (!cached) return null;
         if (Date.now() - cached.fetchedAt > TRACK_CACHE_TTL) {
+#=======
+        const cached = fabdlCache[spotifyUrl];
+        if (!cached) return null;
+        if (Date.now() - cached.fetchedAt > FABDL_CACHE_TTL) {
+#>>>>>>> main
           return null;
         }
         return cached;
       }
 
       function updateTrackCache(spotifyUrl, data) {
+#<<<<<<< fabdl-streaming-implementation-17517336698426992768
         trackCache[spotifyUrl] = { ...data, fetchedAt: Date.now() };
         persistTrackCache();
       }
@@ -616,6 +650,78 @@
         } finally {
             trackRequests.delete(spotifyUrl);
         }
+#=======
+        fabdlCache[spotifyUrl] = { ...data, fetchedAt: Date.now() };
+        persistFabdlCache();
+      }
+
+      function delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+      }
+
+      async function fetchFabdlJson(path) {
+        const response = await fetch(`${FABDL_BASE_URL}${path}`, {
+          cache: 'no-store',
+        });
+        if (!response.ok) {
+          throw new Error(`FabDL error ${response.status}`);
+        }
+        return response.json();
+      }
+
+      async function fetchFabdlMetadata(spotifyUrl) {
+        if (fabdlRequests.has(spotifyUrl)) {
+          return fabdlRequests.get(spotifyUrl);
+        }
+
+        const request = (async () => {
+          const trackPayload = await fetchFabdlJson(
+            `/spotify/get?url=${encodeURIComponent(spotifyUrl)}`
+          );
+          const track = trackPayload?.result;
+          if (!track?.id || !track?.gid) {
+            throw new Error('FabDL track metadata kosong');
+          }
+
+          const taskPayload = await fetchFabdlJson(
+            `/spotify/mp3-convert-task/${track.gid}/${track.id}`
+          );
+          let task = taskPayload?.result;
+          if (!task?.tid) {
+            throw new Error('FabDL task belum siap');
+          }
+
+          let downloadUrl = task.download_url;
+          let status = task.status;
+
+          for (let attempt = 0; attempt < FABDL_POLL_ATTEMPTS; attempt += 1) {
+            if (status === 3 && downloadUrl) break;
+            await delay(FABDL_POLL_INTERVAL);
+            const progressPayload = await fetchFabdlJson(
+              `/spotify/mp3-convert-progress/${task.tid}`
+            );
+            task = progressPayload?.result ?? task;
+            status = task.status;
+            downloadUrl = task.download_url;
+          }
+
+          const audioUrl = downloadUrl
+            ? new URL(downloadUrl, FABDL_BASE_URL).toString()
+            : '';
+
+          return {
+            audioUrl,
+            thumbnailUrl: track.image,
+            title: track.name,
+            artist: track.artists,
+          };
+        })().finally(() => {
+          fabdlRequests.delete(spotifyUrl);
+        });
+
+        fabdlRequests.set(spotifyUrl, request);
+        return request;
+#>>>>>>> main
       }
 
       function setPlayerState(player, state, label, message) {
@@ -668,12 +774,23 @@
         }
         setPlayerState(player, 'loading', 'Memuat...');
         try {
+#<<<<<<< fabdl-streaming-implementation-17517336698426992768
           const data = await fetchFabdlTrack(spotifyUrl);
+#=======
+          const data = await fetchFabdlMetadata(spotifyUrl);
+#>>>>>>> main
           applyTrackMetadata(player, data);
           updateTrackCache(spotifyUrl, data);
+          if (!data.audioUrl) {
+            throw new Error('Audio belum siap');
+          }
           setPlayerState(player, 'ready', 'Streaming');
         } catch (error) {
+$<<<<<<< fabdl-streaming-implementation-17517336698426992768
           console.error('Gagal memuat data Musik', error);
+#=======
+          console.error('Gagal memuat data FabDL', error);
+#>>>>>>> main
           setPlayerState(
             player,
             'error',
@@ -699,7 +816,11 @@
         const cached = getCachedTrack(player.dataset.spotifyUrl);
         if (cached) {
           applyTrackMetadata(player, cached);
-          setPlayerState(player, 'ready', 'Streaming');
+          if (cached.audioUrl) {
+            setPlayerState(player, 'ready', 'Streaming');
+          } else {
+            setPlayerState(player, 'loading', 'Memuat...');
+          }
         } else {
           setPlayerState(player, 'loading', 'Memuat...');
         }
