@@ -526,92 +526,96 @@
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
       const pauseIcon =
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19h4V5H6zm8-14v14h4V5h-4z"/></svg>';
-      const SPOTDL_ENDPOINT = 'https://spotdl.zeabur.app/';
-      const SPOTDL_CACHE_KEY = 'spotdl-favorites-v1';
-      const SPOTDL_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
-      const spotdlRequests = new Map();
+      const FABDL_API = 'https://api.fabdl.com';
+      const TRACK_CACHE_KEY = 'fabdl-cache-v1';
+      const TRACK_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
+      const trackRequests = new Map();
       let currentAudio = null;
 
-      function readSpotdlCache() {
+      function readTrackCache() {
         try {
-          const raw = localStorage.getItem(SPOTDL_CACHE_KEY);
+          const raw = localStorage.getItem(TRACK_CACHE_KEY);
           return raw ? JSON.parse(raw) : {};
         } catch (error) {
-          console.warn('SpotDL cache reset', error);
+          console.warn('Track cache reset', error);
           return {};
         }
       }
 
-      const spotdlCache = readSpotdlCache();
+      const trackCache = readTrackCache();
 
-      function persistSpotdlCache() {
+      function persistTrackCache() {
         try {
-          localStorage.setItem(SPOTDL_CACHE_KEY, JSON.stringify(spotdlCache));
+          localStorage.setItem(TRACK_CACHE_KEY, JSON.stringify(trackCache));
         } catch (error) {
-          console.warn('SpotDL cache write failed', error);
+          console.warn('Track cache write failed', error);
         }
       }
 
       function getCachedTrack(spotifyUrl) {
-        const cached = spotdlCache[spotifyUrl];
+        const cached = trackCache[spotifyUrl];
         if (!cached) return null;
-        if (Date.now() - cached.fetchedAt > SPOTDL_CACHE_TTL) {
+        if (Date.now() - cached.fetchedAt > TRACK_CACHE_TTL) {
           return null;
         }
         return cached;
       }
 
       function updateTrackCache(spotifyUrl, data) {
-        spotdlCache[spotifyUrl] = { ...data, fetchedAt: Date.now() };
-        persistSpotdlCache();
+        trackCache[spotifyUrl] = { ...data, fetchedAt: Date.now() };
+        persistTrackCache();
       }
 
-      function extractSpotdlThumbnail(html, doc) {
-        const metaImage = doc.querySelector('meta[property="og:image"]')?.content;
-        if (metaImage) return metaImage;
-        const matches = html.match(/https:\/\/i\.scdn\.co\/image\/[a-zA-Z0-9]+/g);
-        return matches ? matches[0] : null;
-      }
-
-      function parseSpotdlTitle(doc) {
-        const titleText =
-          doc.querySelector('meta[property="og:title"]')?.content ||
-          doc.querySelector('title')?.textContent;
-        if (!titleText) return {};
-        if (titleText.includes(' - ')) {
-          const [title, artist] = titleText.split(' - ');
-          return { title: title.trim(), artist: artist.trim() };
+      async function fetchFabdlTrack(spotifyUrl) {
+        if (trackRequests.has(spotifyUrl)) {
+          return trackRequests.get(spotifyUrl);
         }
-        return { title: titleText.trim() };
-      }
 
-      async function fetchSpotdlMetadata(spotifyUrl) {
-        if (spotdlRequests.has(spotifyUrl)) {
-          return spotdlRequests.get(spotifyUrl);
+        const task = (async () => {
+          // Step 1: Get Metadata
+          const infoRes = await fetch(`${FABDL_API}/spotify/get?url=${encodeURIComponent(spotifyUrl)}`);
+          if (!infoRes.ok) throw new Error(`FabDL Info Error: ${infoRes.status}`);
+          const infoData = await infoRes.json();
+          if (!infoData.result) throw new Error("FabDL: No result found");
+
+          const { gid, id, image, name, artists } = infoData.result;
+
+          // Step 2: Start Task
+          const taskRes = await fetch(`${FABDL_API}/spotify/mp3-convert-task/${gid}/${id}`);
+          if (!taskRes.ok) throw new Error(`FabDL Task Error: ${taskRes.status}`);
+          const taskData = await taskRes.json();
+          let { tid, status, download_url } = taskData.result;
+
+          // Step 3: Poll Progress
+          let attempts = 0;
+          while (status !== 3 && attempts < 30) {
+            await new Promise(r => setTimeout(r, 1000));
+            const progressRes = await fetch(`${FABDL_API}/spotify/mp3-convert-progress/${tid}`);
+            if (!progressRes.ok) throw new Error(`FabDL Progress Error: ${progressRes.status}`);
+            const progressData = await progressRes.json();
+            status = progressData.result.status;
+            download_url = progressData.result.download_url;
+            attempts++;
+          }
+
+          if (status !== 3 || !download_url) {
+             throw new Error("FabDL: Conversion failed or timed out");
+          }
+
+          return {
+            audioUrl: `${FABDL_API}${download_url}`,
+            thumbnailUrl: image,
+            title: name,
+            artist: artists
+          };
+        })();
+
+        trackRequests.set(spotifyUrl, task);
+        try {
+            return await task;
+        } finally {
+            trackRequests.delete(spotifyUrl);
         }
-        const request = fetch(
-          `${SPOTDL_ENDPOINT}?url=${encodeURIComponent(spotifyUrl)}&cache=${Date.now()}`,
-          { cache: 'no-store' }
-        )
-          .then(async response => {
-            if (!response.ok) {
-              throw new Error(`SpotDL error ${response.status}`);
-            }
-            const html = await response.text();
-            const doc = new DOMParser().parseFromString(html, 'text/html');
-            const source = doc.querySelector('source');
-            const thumbnailUrl = extractSpotdlThumbnail(html, doc);
-            return {
-              audioUrl: source?.src ?? '',
-              thumbnailUrl,
-              ...parseSpotdlTitle(doc),
-            };
-          })
-          .finally(() => {
-            spotdlRequests.delete(spotifyUrl);
-          });
-        spotdlRequests.set(spotifyUrl, request);
-        return request;
       }
 
       function setPlayerState(player, state, label, message) {
@@ -652,7 +656,7 @@
         }
       }
 
-      async function refreshSpotdlTrack(player) {
+      async function refreshTrack(player) {
         const spotifyUrl = player.dataset.spotifyUrl;
         if (!spotifyUrl) return;
 
@@ -664,17 +668,17 @@
         }
         setPlayerState(player, 'loading', 'Memuat...');
         try {
-          const data = await fetchSpotdlMetadata(spotifyUrl);
+          const data = await fetchFabdlTrack(spotifyUrl);
           applyTrackMetadata(player, data);
           updateTrackCache(spotifyUrl, data);
           setPlayerState(player, 'ready', 'Streaming');
         } catch (error) {
-          console.error('Gagal memuat data SpotDL', error);
+          console.error('Gagal memuat data Musik', error);
           setPlayerState(
             player,
             'error',
             'Offline',
-            'Gunakan metadata cadangan.'
+            'Gagal memuat stream.'
           );
         } finally {
           if (btn) {
@@ -700,7 +704,7 @@
           setPlayerState(player, 'loading', 'Memuat...');
         }
 
-        refreshSpotdlTrack(player);
+        refreshTrack(player);
 
         btn.addEventListener('click', () => {
           if (!audio.src) return;
@@ -761,10 +765,9 @@
       }
 
       async function loadGallery() {
-        const container = document.getElementById('galery');
+        const container = document.getElementById('gallery');
         if (!container) return;
 
-        const { owner, repo } = resolveGalleryRepo(container);
         const observer = new IntersectionObserver(
           entries => {
             entries.forEach(entry => {
@@ -781,22 +784,29 @@
         );
 
         try {
-          const res = await fetch(
-            `https://api.github.com/repos/${owner}/${repo}/contents/galery`
-          );
+          const res = await fetch('gallery.json');
           if (!res.ok) {
-            throw new Error(`GitHub API error: ${res.status}`);
+            throw new Error(`Gallery load error: ${res.status}`);
           }
           const files = await res.json();
           if (!Array.isArray(files)) return;
           files
-            .filter(file => file.type === 'file')
             .sort((a, b) => a.name.localeCompare(b.name))
             .forEach(file => {
               const img = document.createElement('img');
-              const optimizedUrl = getOptimizedImageUrl(file.download_url);
+              // Use file path directly or through optimizer if needed
+              // Since files are local/relative, we can point directly or use a full URL if optimizer requires it
+              // Assuming optimizer handles full URLs, let's just use the path as is for local dev or optimized if it supports relative
+              // But getOptimizedImageUrl expects a URL.
+              // Let's simplify and use the relative path directly for now as it is reliable.
+              // If optimizer is needed, we need the full URL.
+              // file.path is "galery/img_01.jpg"
+
+              const fullUrl = new URL(file.path, window.location.href).href;
+              const optimizedUrl = getOptimizedImageUrl(fullUrl);
+
               img.dataset.src = optimizedUrl;
-              img.dataset.fullSrc = file.download_url;
+              img.dataset.fullSrc = file.path;
               img.alt = file.name;
               img.loading = 'lazy';
               img.decoding = 'async';
@@ -819,7 +829,7 @@
       loadGallery();
 
       document.addEventListener('contextmenu', e => {
-        if (e.target.closest('#galery')) {
+        if (e.target.closest('#gallery')) {
           e.preventDefault();
         }
       });
