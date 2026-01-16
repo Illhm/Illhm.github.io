@@ -82,7 +82,7 @@
               <p>
                 Halo! Saya <strong>Agus Ilham Maulana</strong> (Ilham). Saya
                 suka hal‑hal yang rapi, sederhana, dan fungsional. Saat ini
-                Bekerja di <strong>PT HANDAL SUKSES KARYA</strong> dan
+                Berkerja di <strong>PT HANDAL SUKSES KARYA</strong> dan
                 berdomisili di <strong>Rembang</strong>. Di waktu luang, saya
                 mengutak‑atik halaman web.
               </p>
@@ -96,7 +96,7 @@
                 berbagi hal-hal baru seputar teknologi.
               </p>
               <ul class="about-list" aria-label="Detail singkat">
-                <li><strong>Fokus saat ini:</strong> Front-end dasar & UI minimalis</li>
+                <li><strong>Fokus saat ini:</strong> Front-end dasar & Ui minimalis</li>
                 <li><strong>Hobi:</strong>  Konser, ngoding, desain</li>
                 <li><strong>Motto:</strong> Just being who I am</li>
               </ul>
@@ -172,7 +172,7 @@
               <div class="spotify-meta">
                 <p class="spotify-title">Favorit terbaru minggu ini</p>
                 <p class="spotify-note">
-                  Auto update dari Spotmate + cache ringan agar tetap cepat.
+                  Auto update dari SpotDL + cache ringan agar tetap cepat.
                 </p>
               </div>
               <a
@@ -526,97 +526,91 @@
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
       const pauseIcon =
         '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19h4V5H6zm8-14v14h4V5h-4z"/></svg>';
-      const SPOTMATE_BASE_URL = 'https://spotmate.online';
-      const SPOTMATE_CACHE_KEY = 'spotmate-favorites-v1';
-      const SPOTMATE_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
-      const spotmateRequests = new Map();
+      const SPOTDL_ENDPOINT = 'https://spotdl.zeabur.app/';
+      const SPOTDL_CACHE_KEY = 'spotdl-favorites-v1';
+      const SPOTDL_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
+      const spotdlRequests = new Map();
       let currentAudio = null;
 
-      function readSpotmateCache() {
+      function readSpotdlCache() {
         try {
-          const raw = localStorage.getItem(SPOTMATE_CACHE_KEY);
+          const raw = localStorage.getItem(SPOTDL_CACHE_KEY);
           return raw ? JSON.parse(raw) : {};
         } catch (error) {
-          console.warn('Spotmate cache reset', error);
+          console.warn('SpotDL cache reset', error);
           return {};
         }
       }
 
-      const spotmateCache = readSpotmateCache();
+      const spotdlCache = readSpotdlCache();
 
-      function persistSpotmateCache() {
+      function persistSpotdlCache() {
         try {
-          localStorage.setItem(SPOTMATE_CACHE_KEY, JSON.stringify(spotmateCache));
+          localStorage.setItem(SPOTDL_CACHE_KEY, JSON.stringify(spotdlCache));
         } catch (error) {
-          console.warn('Spotmate cache write failed', error);
+          console.warn('SpotDL cache write failed', error);
         }
       }
 
       function getCachedTrack(spotifyUrl) {
-        const cached = spotmateCache[spotifyUrl];
+        const cached = spotdlCache[spotifyUrl];
         if (!cached) return null;
-        if (Date.now() - cached.fetchedAt > SPOTMATE_CACHE_TTL) {
+        if (Date.now() - cached.fetchedAt > SPOTDL_CACHE_TTL) {
           return null;
         }
         return cached;
       }
 
       function updateTrackCache(spotifyUrl, data) {
-        spotmateCache[spotifyUrl] = { ...data, fetchedAt: Date.now() };
-        persistSpotmateCache();
+        spotdlCache[spotifyUrl] = { ...data, fetchedAt: Date.now() };
+        persistSpotdlCache();
       }
 
-      async function fetchSpotmateJson(path, payload) {
-        const response = await fetch(`${SPOTMATE_BASE_URL}${path}`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        });
-        if (!response.ok) {
-          throw new Error(`Spotmate error ${response.status}`);
-        }
-        return response.json();
+      function extractSpotdlThumbnail(html, doc) {
+        const metaImage = doc.querySelector('meta[property="og:image"]')?.content;
+        if (metaImage) return metaImage;
+        const matches = html.match(/https:\/\/i\.scdn\.co\/image\/[a-zA-Z0-9]+/g);
+        return matches ? matches[0] : null;
       }
 
-      async function fetchSpotmateMetadata(spotifyUrl) {
-        if (spotmateRequests.has(spotifyUrl)) {
-          return spotmateRequests.get(spotifyUrl);
+      function parseSpotdlTitle(doc) {
+        const titleText =
+          doc.querySelector('meta[property="og:title"]')?.content ||
+          doc.querySelector('title')?.textContent;
+        if (!titleText) return {};
+        if (titleText.includes(' - ')) {
+          const [title, artist] = titleText.split(' - ');
+          return { title: title.trim(), artist: artist.trim() };
         }
+        return { title: titleText.trim() };
+      }
 
-        const request = (async () => {
-          const trackPayload = await fetchSpotmateJson('/getTrackData', {
-            spotify_url: spotifyUrl,
+      async function fetchSpotdlMetadata(spotifyUrl) {
+        if (spotdlRequests.has(spotifyUrl)) {
+          return spotdlRequests.get(spotifyUrl);
+        }
+        const request = fetch(
+          `${SPOTDL_ENDPOINT}?url=${encodeURIComponent(spotifyUrl)}&cache=${Date.now()}`,
+          { cache: 'no-store' }
+        )
+          .then(async response => {
+            if (!response.ok) {
+              throw new Error(`SpotDL error ${response.status}`);
+            }
+            const html = await response.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const source = doc.querySelector('source');
+            const thumbnailUrl = extractSpotdlThumbnail(html, doc);
+            return {
+              audioUrl: source?.src ?? '',
+              thumbnailUrl,
+              ...parseSpotdlTitle(doc),
+            };
+          })
+          .finally(() => {
+            spotdlRequests.delete(spotifyUrl);
           });
-          if (!trackPayload?.id || trackPayload?.type !== 'track') {
-            throw new Error('Spotmate track metadata kosong');
-          }
-
-          const convertPayload = await fetchSpotmateJson('/convert', {
-            urls: spotifyUrl,
-          });
-          const audioUrl = convertPayload?.url || '';
-          if (convertPayload?.error !== false || !audioUrl) {
-            throw new Error('Spotmate convert belum siap');
-          }
-
-          const coverUrl = trackPayload?.album?.images?.[0]?.url || '';
-          const artistNames = Array.isArray(trackPayload?.artists)
-            ? trackPayload.artists.map(artist => artist.name).join(', ')
-            : '';
-
-          return {
-            audioUrl,
-            thumbnailUrl: coverUrl,
-            title: trackPayload?.name,
-            artist: artistNames,
-          };
-        })().finally(() => {
-          spotmateRequests.delete(spotifyUrl);
-        });
-
-        spotmateRequests.set(spotifyUrl, request);
+        spotdlRequests.set(spotifyUrl, request);
         return request;
       }
 
@@ -658,21 +652,7 @@
         }
       }
 
-      function applyFallbackMetadata(player) {
-        const titleEl = player.querySelector('.music-title');
-        const artistEl = player.querySelector('.music-artist');
-        const fallbackTitle = player.dataset.trackTitle;
-        const fallbackArtist = player.dataset.trackArtist;
-
-        if (titleEl && fallbackTitle) {
-          titleEl.textContent = fallbackTitle;
-        }
-        if (artistEl && fallbackArtist) {
-          artistEl.textContent = fallbackArtist;
-        }
-      }
-
-      async function refreshTrack(player) {
+      async function refreshSpotdlTrack(player) {
         const spotifyUrl = player.dataset.spotifyUrl;
         if (!spotifyUrl) return;
 
@@ -684,16 +664,12 @@
         }
         setPlayerState(player, 'loading', 'Memuat...');
         try {
-          const data = await fetchSpotmateMetadata(spotifyUrl);
+          const data = await fetchSpotdlMetadata(spotifyUrl);
           applyTrackMetadata(player, data);
           updateTrackCache(spotifyUrl, data);
-          if (!data.audioUrl) {
-            throw new Error('Audio belum siap');
-          }
           setPlayerState(player, 'ready', 'Streaming');
         } catch (error) {
-          console.error('Gagal memuat data Spotmate', error);
-          applyFallbackMetadata(player);
+          console.error('Gagal memuat data SpotDL', error);
           setPlayerState(
             player,
             'error',
@@ -719,16 +695,12 @@
         const cached = getCachedTrack(player.dataset.spotifyUrl);
         if (cached) {
           applyTrackMetadata(player, cached);
-          if (cached.audioUrl) {
-            setPlayerState(player, 'ready', 'Streaming');
-          } else {
-            setPlayerState(player, 'loading', 'Memuat...');
-          }
+          setPlayerState(player, 'ready', 'Streaming');
         } else {
           setPlayerState(player, 'loading', 'Memuat...');
         }
 
-        refreshTrack(player);
+        refreshSpotdlTrack(player);
 
         btn.addEventListener('click', () => {
           if (!audio.src) return;
@@ -792,6 +764,7 @@
         const container = document.getElementById('gallery');
         if (!container) return;
 
+        const { owner, repo } = resolveGalleryRepo(container);
         const observer = new IntersectionObserver(
           entries => {
             entries.forEach(entry => {
@@ -808,29 +781,22 @@
         );
 
         try {
-          const res = await fetch('gallery.json');
+          const res = await fetch(
+            `https://api.github.com/repos/${owner}/${repo}/contents/gallery`
+          );
           if (!res.ok) {
-            throw new Error(`Gallery load error: ${res.status}`);
+            throw new Error(`GitHub API error: ${res.status}`);
           }
           const files = await res.json();
           if (!Array.isArray(files)) return;
           files
+            .filter(file => file.type === 'file')
             .sort((a, b) => a.name.localeCompare(b.name))
             .forEach(file => {
               const img = document.createElement('img');
-              // Use file path directly or through optimizer if needed
-              // Since files are local/relative, we can point directly or use a full URL if optimizer requires it
-              // Assuming optimizer handles full URLs, let's just use the path as is for local dev or optimized if it supports relative
-              // But getOptimizedImageUrl expects a URL.
-              // Let's simplify and use the relative path directly for now as it is reliable.
-              // If optimizer is needed, we need the full URL.
-              // file.path is "galery/img_01.jpg"
-
-              const fullUrl = new URL(file.path, window.location.href).href;
-              const optimizedUrl = getOptimizedImageUrl(fullUrl);
-
+              const optimizedUrl = getOptimizedImageUrl(file.download_url);
               img.dataset.src = optimizedUrl;
-              img.dataset.fullSrc = file.path;
+              img.dataset.fullSrc = file.download_url;
               img.alt = file.name;
               img.loading = 'lazy';
               img.decoding = 'async';
