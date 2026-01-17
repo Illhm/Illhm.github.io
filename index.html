@@ -529,8 +529,13 @@
       const SPOTDL_ENDPOINT = 'https://spotdl.zeabur.app/';
       const SPOTDL_CACHE_KEY = 'spotdl-favorites-v1';
       const SPOTDL_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
+      const SPOTDL_MAX_CONCURRENT = 2;
       const spotdlRequests = new Map();
+      const spotdlLoadState = new WeakMap();
+      const spotdlQueue = [];
+      let spotdlActive = 0;
       let currentAudio = null;
+      let spotdlCachePersistTimer = null;
 
       function readSpotdlCache() {
         try {
@@ -545,11 +550,22 @@
       const spotdlCache = readSpotdlCache();
 
       function persistSpotdlCache() {
+        if (spotdlCachePersistTimer) {
+          clearTimeout(spotdlCachePersistTimer);
+          spotdlCachePersistTimer = null;
+        }
         try {
           localStorage.setItem(SPOTDL_CACHE_KEY, JSON.stringify(spotdlCache));
         } catch (error) {
           console.warn('SpotDL cache write failed', error);
         }
+      }
+
+      function schedulePersistSpotdlCache() {
+        if (spotdlCachePersistTimer) {
+          clearTimeout(spotdlCachePersistTimer);
+        }
+        spotdlCachePersistTimer = setTimeout(persistSpotdlCache, 300);
       }
 
       function getCachedTrack(spotifyUrl) {
@@ -563,7 +579,28 @@
 
       function updateTrackCache(spotifyUrl, data) {
         spotdlCache[spotifyUrl] = { ...data, fetchedAt: Date.now() };
-        persistSpotdlCache();
+        schedulePersistSpotdlCache();
+      }
+
+      function enqueueSpotdlRequest(task) {
+        return new Promise((resolve, reject) => {
+          spotdlQueue.push({ task, resolve, reject });
+          processSpotdlQueue();
+        });
+      }
+
+      function processSpotdlQueue() {
+        if (spotdlActive >= SPOTDL_MAX_CONCURRENT) return;
+        const next = spotdlQueue.shift();
+        if (!next) return;
+        spotdlActive += 1;
+        Promise.resolve()
+          .then(next.task)
+          .then(next.resolve, next.reject)
+          .finally(() => {
+            spotdlActive -= 1;
+            processSpotdlQueue();
+          });
       }
 
       function extractSpotdlThumbnail(html, doc) {
@@ -589,9 +626,8 @@
         if (spotdlRequests.has(spotifyUrl)) {
           return spotdlRequests.get(spotifyUrl);
         }
-        const request = fetch(
-          `${SPOTDL_ENDPOINT}?url=${encodeURIComponent(spotifyUrl)}&cache=${Date.now()}`,
-          { cache: 'no-store' }
+        const request = enqueueSpotdlRequest(() =>
+          fetch(`${SPOTDL_ENDPOINT}?url=${encodeURIComponent(spotifyUrl)}`)
         )
           .then(async response => {
             if (!response.ok) {
@@ -652,6 +688,20 @@
         }
       }
 
+      function updatePlayButtonState(player) {
+        const audio = player.querySelector('audio');
+        const btn = player.querySelector('.play-btn');
+        if (!audio || !btn) return;
+        const hasSource = Boolean(audio.src);
+        btn.disabled = !hasSource;
+        if (!hasSource) {
+          btn.innerHTML = playIcon;
+          btn.setAttribute('aria-label', 'Tidak tersedia');
+        } else if (audio.paused) {
+          btn.setAttribute('aria-label', 'Putar');
+        }
+      }
+
       async function refreshSpotdlTrack(player) {
         const spotifyUrl = player.dataset.spotifyUrl;
         if (!spotifyUrl) return;
@@ -677,12 +727,65 @@
             'Gunakan metadata cadangan.'
           );
         } finally {
-          if (btn) {
-            btn.disabled = !audio?.src;
-            btn.setAttribute('aria-label', btn.disabled ? 'Tidak tersedia' : 'Putar');
-          }
+          updatePlayButtonState(player);
         }
       }
+
+      function ensureSpotdlLoaded(player) {
+        const spotifyUrl = player.dataset.spotifyUrl;
+        if (!spotifyUrl) return Promise.resolve(null);
+        const cached = getCachedTrack(spotifyUrl);
+        if (cached) {
+          applyTrackMetadata(player, cached);
+          setPlayerState(player, 'ready', 'Streaming');
+          updatePlayButtonState(player);
+          return Promise.resolve(cached);
+        }
+        if (spotdlLoadState.has(player)) {
+          return spotdlLoadState.get(player);
+        }
+        const request = refreshSpotdlTrack(player).finally(() => {
+          spotdlLoadState.delete(player);
+        });
+        spotdlLoadState.set(player, request);
+        return request;
+      }
+
+      function pauseOtherAudio(audio) {
+        if (currentAudio && currentAudio !== audio) {
+          currentAudio.pause();
+          const otherPlayer = currentAudio.closest('.music-player');
+          const otherBtn = otherPlayer?.querySelector('.play-btn');
+          if (otherBtn) {
+            otherBtn.innerHTML = playIcon;
+            otherBtn.setAttribute('aria-label', 'Putar');
+          }
+          currentAudio = null;
+        }
+      }
+
+      function startPlayback(player) {
+        const audio = player.querySelector('audio');
+        const btn = player.querySelector('.play-btn');
+        if (!audio?.src || !btn) return;
+        pauseOtherAudio(audio);
+        audio.play();
+        btn.innerHTML = pauseIcon;
+        btn.setAttribute('aria-label', 'Jeda');
+        currentAudio = audio;
+      }
+
+      const musicObserver = new IntersectionObserver(
+        entries => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              ensureSpotdlLoaded(entry.target);
+              musicObserver.unobserve(entry.target);
+            }
+          });
+        },
+        { rootMargin: '600px 0px' }
+      );
 
       document.querySelectorAll('.music-player').forEach(player => {
         const audio = player.querySelector('audio');
@@ -696,27 +799,36 @@
         if (cached) {
           applyTrackMetadata(player, cached);
           setPlayerState(player, 'ready', 'Streaming');
+          updatePlayButtonState(player);
         } else {
-          setPlayerState(player, 'loading', 'Memuat...');
+          musicObserver.observe(player);
         }
+        const intentHandler = () => ensureSpotdlLoaded(player);
+        player.addEventListener('pointerenter', intentHandler, { once: true });
+        player.addEventListener('touchstart', intentHandler, {
+          once: true,
+          passive: true,
+        });
 
-        refreshSpotdlTrack(player);
-
-        btn.addEventListener('click', () => {
-          if (!audio.src) return;
-          if (audio.paused) {
-            if (currentAudio && currentAudio !== audio) {
-              currentAudio.pause();
-              const otherBtn = currentAudio
-                .closest('.music-player')
-                .querySelector('.play-btn');
-              otherBtn.innerHTML = playIcon;
-              otherBtn.setAttribute('aria-label', 'Putar');
+        btn.addEventListener('click', async () => {
+          if (!audio.src) {
+            btn.disabled = true;
+            btn.setAttribute('aria-label', 'Memuat');
+            setPlayerState(player, 'loading', 'Memuat...');
+            player.dataset.pendingPlay = 'true';
+            try {
+              await ensureSpotdlLoaded(player);
+            } finally {
+              btn.disabled = false;
             }
-            audio.play();
-            btn.innerHTML = pauseIcon;
-            btn.setAttribute('aria-label', 'Jeda');
-            currentAudio = audio;
+            if (player.dataset.pendingPlay === 'true' && audio.src) {
+              startPlayback(player);
+            }
+            player.dataset.pendingPlay = '';
+            return;
+          }
+          if (audio.paused) {
+            startPlayback(player);
           } else {
             audio.pause();
             btn.innerHTML = playIcon;
@@ -730,6 +842,9 @@
           if (currentAudio === audio) currentAudio = null;
         });
       });
+
+      window.addEventListener('pagehide', persistSpotdlCache);
+      window.addEventListener('beforeunload', persistSpotdlCache);
 
       const DEFAULT_GALLERY_OWNER = 'Illhm';
       const DEFAULT_GALLERY_REPO = 'Illhm.github.io';
