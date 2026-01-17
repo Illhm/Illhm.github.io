@@ -530,12 +530,14 @@
       const SPOTDL_CACHE_KEY = 'spotdl-favorites-v1';
       const SPOTDL_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
       const SPOTDL_MAX_CONCURRENT = 2;
+      const SPOTDL_TIMEOUT_MS = 8000;
       const spotdlRequests = new Map();
       const spotdlLoadState = new WeakMap();
       const spotdlQueue = [];
       let spotdlActive = 0;
       let currentAudio = null;
       let spotdlCachePersistTimer = null;
+      const supportsIntersectionObserver = 'IntersectionObserver' in window;
 
       function readSpotdlCache() {
         try {
@@ -622,13 +624,30 @@
         return { title: titleText.trim() };
       }
 
+      function sanitizeMediaUrl(rawUrl) {
+        if (!rawUrl) return '';
+        try {
+          const parsed = new URL(rawUrl);
+          if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
+            return parsed.toString();
+          }
+        } catch (error) {
+          console.warn('Invalid media URL', rawUrl, error);
+        }
+        return '';
+      }
+
       async function fetchSpotdlMetadata(spotifyUrl) {
         if (spotdlRequests.has(spotifyUrl)) {
           return spotdlRequests.get(spotifyUrl);
         }
-        const request = enqueueSpotdlRequest(() =>
-          fetch(`${SPOTDL_ENDPOINT}?url=${encodeURIComponent(spotifyUrl)}`)
-        )
+        const request = enqueueSpotdlRequest(() => {
+          const controller = new AbortController();
+          const timeout = setTimeout(() => controller.abort(), SPOTDL_TIMEOUT_MS);
+          return fetch(`${SPOTDL_ENDPOINT}?url=${encodeURIComponent(spotifyUrl)}`, {
+            signal: controller.signal,
+          }).finally(() => clearTimeout(timeout));
+        })
           .then(async response => {
             if (!response.ok) {
               throw new Error(`SpotDL error ${response.status}`);
@@ -638,7 +657,7 @@
             const source = doc.querySelector('source');
             const thumbnailUrl = extractSpotdlThumbnail(html, doc);
             return {
-              audioUrl: source?.src ?? '',
+              audioUrl: sanitizeMediaUrl(source?.src),
               thumbnailUrl,
               ...parseSpotdlTitle(doc),
             };
@@ -716,6 +735,9 @@
         try {
           const data = await fetchSpotdlMetadata(spotifyUrl);
           applyTrackMetadata(player, data);
+          if (!data.audioUrl) {
+            throw new Error('SpotDL preview missing');
+          }
           updateTrackCache(spotifyUrl, data);
           setPlayerState(player, 'ready', 'Streaming');
         } catch (error) {
@@ -769,23 +791,38 @@
         const btn = player.querySelector('.play-btn');
         if (!audio?.src || !btn) return;
         pauseOtherAudio(audio);
-        audio.play();
+        const playAttempt = audio.play();
+        if (playAttempt?.catch) {
+          playAttempt.catch(error => {
+            console.warn('Playback failed', error);
+            btn.innerHTML = playIcon;
+            btn.setAttribute('aria-label', 'Putar');
+            setPlayerState(
+              player,
+              'error',
+              'Offline',
+              'Preview tidak bisa diputar.'
+            );
+          });
+        }
         btn.innerHTML = pauseIcon;
         btn.setAttribute('aria-label', 'Jeda');
         currentAudio = audio;
       }
 
-      const musicObserver = new IntersectionObserver(
-        entries => {
-          entries.forEach(entry => {
-            if (entry.isIntersecting) {
-              ensureSpotdlLoaded(entry.target);
-              musicObserver.unobserve(entry.target);
-            }
-          });
-        },
-        { rootMargin: '600px 0px' }
-      );
+      const musicObserver = supportsIntersectionObserver
+        ? new IntersectionObserver(
+            entries => {
+              entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                  ensureSpotdlLoaded(entry.target);
+                  musicObserver.unobserve(entry.target);
+                }
+              });
+            },
+            { rootMargin: '600px 0px' }
+          )
+        : null;
 
       document.querySelectorAll('.music-player').forEach(player => {
         const audio = player.querySelector('audio');
@@ -800,8 +837,10 @@
           applyTrackMetadata(player, cached);
           setPlayerState(player, 'ready', 'Streaming');
           updatePlayButtonState(player);
-        } else {
+        } else if (musicObserver) {
           musicObserver.observe(player);
+        } else {
+          ensureSpotdlLoaded(player);
         }
         const intentHandler = () => ensureSpotdlLoaded(player);
         player.addEventListener('pointerenter', intentHandler, { once: true });
@@ -840,6 +879,16 @@
           btn.innerHTML = playIcon;
           btn.setAttribute('aria-label', 'Putar');
           if (currentAudio === audio) currentAudio = null;
+        });
+        audio.addEventListener('error', () => {
+          btn.innerHTML = playIcon;
+          btn.setAttribute('aria-label', 'Putar');
+          setPlayerState(
+            player,
+            'error',
+            'Offline',
+            'Preview tidak tersedia.'
+          );
         });
       });
 
@@ -880,20 +929,22 @@
         if (!container) return;
 
         const { owner, repo } = resolveGalleryRepo(container);
-        const observer = new IntersectionObserver(
-          entries => {
-            entries.forEach(entry => {
-              if (!entry.isIntersecting) return;
-              const img = entry.target;
-              const dataSrc = img.dataset.src;
-              if (dataSrc && img.src !== dataSrc) {
-                img.src = dataSrc;
-              }
-              observer.unobserve(img);
-            });
-          },
-          { rootMargin: '200px' }
-        );
+        const observer = supportsIntersectionObserver
+          ? new IntersectionObserver(
+              entries => {
+                entries.forEach(entry => {
+                  if (!entry.isIntersecting) return;
+                  const img = entry.target;
+                  const dataSrc = img.dataset.src;
+                  if (dataSrc && img.src !== dataSrc) {
+                    img.src = dataSrc;
+                  }
+                  observer.unobserve(img);
+                });
+              },
+              { rootMargin: '200px' }
+            )
+          : null;
 
         try {
           const res = await fetch(
@@ -925,7 +976,11 @@
                 }
               });
               container.appendChild(img);
-              observer.observe(img);
+              if (observer) {
+                observer.observe(img);
+              } else if (img.dataset.src) {
+                img.src = img.dataset.src;
+              }
             });
         } catch (err) {
           console.error('Failed to load gallery', err);
