@@ -399,13 +399,21 @@ function setupPlayer(player) {
     if (currentAudio === audio) currentAudio = null;
   });
   audio.addEventListener('error', () => {
+    console.warn(`Playback failed for ${player.dataset.spotifyUrl}`);
+    const spotifyUrl = player.dataset.spotifyUrl;
+    if (spotdlCache[spotifyUrl]) {
+      delete spotdlCache[spotifyUrl];
+      schedulePersistSpotdlCache();
+    }
+    audio.removeAttribute('src');
     btn.innerHTML = playIcon;
     btn.setAttribute('aria-label', 'Putar');
+    btn.disabled = false;
     setPlayerState(
       player,
       'error',
-      'Offline',
-      'Preview tidak tersedia.'
+      'Gagal',
+      'Gagal memuat. Klik untuk coba lagi.'
     );
   });
 }
