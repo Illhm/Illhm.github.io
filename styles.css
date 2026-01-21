@@ -41,12 +41,10 @@ body {
     "Apple Color Emoji",
     "Segoe UI Emoji";
   color: var(--text);
-  background:
-    radial-gradient(1200px 600px at 10% -10%, #0b1022 25%, transparent),
-    radial-gradient(1200px 600px at 110% -10%, #07243a 25%, transparent),
-    linear-gradient(180deg, var(--bg), var(--bg2));
+  background: linear-gradient(180deg, var(--bg), var(--bg2));
   min-height: 100svh;
   letter-spacing: 0.2px;
+  overflow-x: hidden;
 }
 .wrap {
   max-width: 1040px;
@@ -730,4 +728,69 @@ footer {
   .avatar {
     margin: 0 auto;
   }
+}
+
+/* Background Animation */
+.bg-animation {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.blob {
+  position: absolute;
+  filter: blur(80px);
+  border-radius: 50%;
+  animation: floatBlob 20s infinite alternate cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+.blob-1 {
+  top: -10%;
+  left: -10%;
+  width: 50vw;
+  height: 50vw;
+  background: var(--accent);
+  opacity: 0.15;
+}
+
+.blob-2 {
+  bottom: -10%;
+  right: -10%;
+  width: 60vw;
+  height: 60vw;
+  background: var(--accent2);
+  opacity: 0.12;
+  animation-direction: alternate-reverse;
+  animation-duration: 25s;
+}
+
+.blob-3 {
+  top: 40%;
+  left: 40%;
+  width: 40vw;
+  height: 40vw;
+  background: #4f46e5;
+  opacity: 0.08;
+  animation-duration: 22s;
+  animation-delay: -5s;
+}
+
+@keyframes floatBlob {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(10%, 5%) scale(1.1); }
+}
+
+/* Noise Texture */
+.noise-overlay {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  opacity: 0.03;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
 }

@@ -19,8 +19,14 @@
     <meta property="og:type" content="website" />
   </head>
   <body>
+    <div class="bg-animation">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
+      <div class="blob blob-3"></div>
+    </div>
+    <div class="noise-overlay"></div>
     <div class="wrap">
-      <div class="card" role="main">
+      <div class="card" role="main" data-animate>
         <header class="hero">
           <img
             class="avatar"
@@ -75,7 +81,7 @@
           </div>
         </header>
 
-        <section>
+        <section data-animate="rise">
           <h2>Tentang Saya</h2>
           <div class="about">
             <div>
@@ -155,7 +161,7 @@
           </div>
         </section>
 
-        <section>
+        <section data-animate="rise">
           <h2>Playlist</h2>
           <p class="note">lagu favorit ku, yang sering ku putar.</p>
 
@@ -189,7 +195,7 @@
           </div>
         </section>
 
-        <section>
+        <section data-animate="rise">
           <h2>Galeri</h2>
           <div class="gallery-container">
             <div

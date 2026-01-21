@@ -583,3 +583,23 @@ async function loadGallery() {
   }
 }
 loadGallery();
+
+// Scroll Reveal Animation
+if (supportsIntersectionObserver) {
+  const animateObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('in-view');
+        animateObserver.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.05, rootMargin: '0px 0px -50px 0px' });
+
+  document.querySelectorAll('[data-animate]').forEach(el => {
+    animateObserver.observe(el);
+  });
+} else {
+  document.querySelectorAll('[data-animate]').forEach(el => {
+    el.classList.add('in-view');
+  });
+}
