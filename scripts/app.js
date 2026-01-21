@@ -35,6 +35,7 @@ const playIcon =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
 const pauseIcon =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19h4V5H6zm8-14v14h4V5h-4z"/></svg>';
+const SILENT_AUDIO = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAgZGF0YQQAAAAAAA==';
 const SPOTDL_ENDPOINT = 'https://spotdl.zeabur.app/';
 const SPOTDL_CACHE_KEY = 'spotdl-favorites-v1';
 const SPOTDL_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
@@ -219,7 +220,7 @@ function updatePlayButtonState(player) {
   const audio = player.querySelector('audio');
   const btn = player.querySelector('.play-btn');
   if (!audio || !btn) return;
-  const hasSource = Boolean(audio.src);
+  const hasSource = Boolean(audio.src) && audio.src !== SILENT_AUDIO;
   btn.disabled = !hasSource;
   if (!hasSource) {
     btn.innerHTML = playIcon;
@@ -250,6 +251,10 @@ async function refreshSpotdlTrack(player) {
     setPlayerState(player, 'ready', 'Streaming');
   } catch (error) {
     console.error('Gagal memuat data SpotDL', error);
+    if (audio.src === SILENT_AUDIO) {
+      audio.pause();
+      audio.removeAttribute('src');
+    }
     setPlayerState(
       player,
       'error',
@@ -399,7 +404,9 @@ function setupPlayer(player) {
   });
 
   btn.addEventListener('click', async () => {
-    if (!audio.src) {
+    if (!audio.src || audio.src === SILENT_AUDIO) {
+      audio.src = SILENT_AUDIO;
+      audio.play().catch(() => {});
       btn.disabled = true;
       btn.setAttribute('aria-label', 'Memuat');
       setPlayerState(player, 'loading', 'Memuat...');
@@ -409,8 +416,10 @@ function setupPlayer(player) {
       } finally {
         btn.disabled = false;
       }
-      if (player.dataset.pendingPlay === 'true' && audio.src) {
+      if (player.dataset.pendingPlay === 'true' && audio.src && audio.src !== SILENT_AUDIO) {
         startPlayback(player);
+      } else if (audio.src === SILENT_AUDIO) {
+        audio.removeAttribute('src');
       }
       player.dataset.pendingPlay = '';
       return;
