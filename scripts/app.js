@@ -1,4 +1,36 @@
-document.getElementById("year").textContent = new Date().getFullYear();
+const supportsIntersectionObserver = 'IntersectionObserver' in window;
+
+// Scroll Reveal Animation (Initialize first to prevent blank screen if other scripts fail)
+function initScrollReveal() {
+  if (supportsIntersectionObserver) {
+    const animateObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('in-view');
+          animateObserver.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.05, rootMargin: '0px 0px -50px 0px' });
+
+    document.querySelectorAll('[data-animate]').forEach(el => {
+      animateObserver.observe(el);
+    });
+  } else {
+    document.querySelectorAll('[data-animate]').forEach(el => {
+      el.classList.add('in-view');
+    });
+  }
+}
+// Run immediately
+initScrollReveal();
+
+try {
+  const yearEl = document.getElementById("year");
+  if (yearEl) {
+    yearEl.textContent = new Date().getFullYear();
+  }
+} catch (e) { console.warn("Year update failed", e); }
+
 const playIcon =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8 5v14l11-7z"/></svg>';
 const pauseIcon =
@@ -14,7 +46,6 @@ const spotdlQueue = [];
 let spotdlActive = 0;
 let currentAudio = null;
 let spotdlCachePersistTimer = null;
-const supportsIntersectionObserver = 'IntersectionObserver' in window;
 
 function readSpotdlCache() {
   try {
@@ -312,7 +343,7 @@ function createMusicPlayerElement(url) {
         <img class="music-cover" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%23333'/%3E%3C/svg%3E" alt="Album Art">
         <span class="spotify-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path fill="currentColor" d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24zm5.163 17.354a.75.75 0 0 1-1.036.249c-2.84-1.738-6.418-2.132-10.621-1.171a.75.75 0 1 1-.342-1.462c4.55-1.062 8.463-.611 11.584 1.287a.75.75 0 0 1 .415.835zm1.48-3.294a.94.94 0 0 1-1.302.31c-3.247-1.99-8.208-2.57-12.051-1.414a.94.94 0 1 1-.558-1.804c4.27-1.32 9.703-.67 13.468 1.58a.94.94 0 0 1 .443 1.328zm.131-3.408c-3.633-2.156-9.14-2.352-12.421-1.29a1.13 1.13 0 1 1-.668-2.162c4.043-1.25 10.2-1.012 14.35 1.455a1.13 1.13 0 0 1-1.261 1.997z"/>
+            <path fill="currentColor" d="M12 0a12 12 0 1 0 0 24 12 12 0 0 0 0-24zm5.163 17.354a.75.75 0 0 1-1.036.249c-2.84-1.738-6.418-2.132-10.621-1.171a.75.75 0 1 1-.342-1.462c4.55-1.062 8.463-.611 11.584 1.287a.75.75 0 0 1 .415.835zm1.48-3.294a.94.94 0 0 1-1.302.31c-3.247-1.99-8.208-2.57-12.051-1.416a.94.94 0 1 1-.558-1.804c4.27-1.32 9.703-.67 13.468 1.58a.94.94 0 0 1 .443 1.328zm.131-3.408c-3.633-2.156-9.14-2.352-12.421-1.29a1.13 1.13 0 1 1-.668-2.162c4.043-1.25 10.2-1.012 14.35 1.455a1.13 1.13 0 0 1-1.261 1.997z"/>
           </svg>
         </span>
         <button class="play-btn" aria-label="Putar">
@@ -584,22 +615,53 @@ async function loadGallery() {
 }
 loadGallery();
 
-// Scroll Reveal Animation
-if (supportsIntersectionObserver) {
-  const animateObserver = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        entry.target.classList.add('in-view');
-        animateObserver.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.05, rootMargin: '0px 0px -50px 0px' });
+// Typewriter Effect
+class Typewriter {
+  constructor(el, phrases, period = 2000) {
+    this.el = el;
+    this.phrases = phrases;
+    this.period = period;
+    this.loopNum = 0;
+    this.txt = '';
+    this.isDeleting = false;
+    this.tick();
+  }
 
-  document.querySelectorAll('[data-animate]').forEach(el => {
-    animateObserver.observe(el);
-  });
-} else {
-  document.querySelectorAll('[data-animate]').forEach(el => {
-    el.classList.add('in-view');
-  });
+  tick() {
+    const i = this.loopNum % this.phrases.length;
+    const fullTxt = this.phrases[i];
+
+    if (this.isDeleting) {
+      this.txt = fullTxt.substring(0, this.txt.length - 1);
+    } else {
+      this.txt = fullTxt.substring(0, this.txt.length + 1);
+    }
+
+    this.el.textContent = this.txt;
+
+    let delta = 150 - Math.random() * 100;
+
+    if (this.isDeleting) { delta /= 2; }
+
+    if (!this.isDeleting && this.txt === fullTxt) {
+      delta = this.period;
+      this.isDeleting = true;
+    } else if (this.isDeleting && this.txt === '') {
+      this.isDeleting = false;
+      this.loopNum++;
+      delta = 500;
+    }
+
+    setTimeout(() => this.tick(), delta);
+  }
+}
+
+const typingElement = document.getElementById('typing-text');
+if (typingElement) {
+  new Typewriter(typingElement, [
+    ' • PT HANDAL SUKSES KARYA',
+    ' • Rembang',
+    ' • Web Enthusiast',
+    ' • Music Lover'
+  ]);
 }
