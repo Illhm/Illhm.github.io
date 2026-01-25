@@ -562,6 +562,7 @@ async function loadPlaylist() {
     const listContainer = document.querySelector('.music-list');
     listContainer.innerHTML = '';
 
+    const fragment = document.createDocumentFragment();
     urls.forEach(url => {
       // Validate URL format (simple check)
       if (!url.includes('spotify.com/track/') && !url.includes('spotify:track:')) {
@@ -569,9 +570,10 @@ async function loadPlaylist() {
          return;
       }
       const player = createMusicPlayerElement(url);
-      listContainer.appendChild(player);
+      fragment.appendChild(player);
       setupPlayer(player);
     });
+    listContainer.appendChild(fragment);
 
   } catch (error) {
     console.error('Error loading playlist:', error);
