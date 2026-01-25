@@ -135,6 +135,11 @@ function parseSpotdlTitle(doc) {
 function sanitizeMediaUrl(rawUrl) {
   if (!rawUrl) return '';
   try {
+    // Prevent common undefined/null injection issues in URLs
+    if (rawUrl.includes('undefined') || rawUrl.includes('null')) {
+      console.warn('Blocked potentially malformed URL:', rawUrl);
+      return '';
+    }
     const parsed = new URL(rawUrl);
     if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
       return parsed.toString();
@@ -467,17 +472,17 @@ function setupPlayer(player) {
     let errDesc = 'Unknown';
     if (err) {
       switch (err.code) {
-        case err.MEDIA_ERR_ABORTED: errDesc = 'Aborted'; break;
-        case err.MEDIA_ERR_NETWORK: errDesc = 'Network'; break;
-        case err.MEDIA_ERR_DECODE: errDesc = 'Decode'; break;
-        case err.MEDIA_ERR_SRC_NOT_SUPPORTED: errDesc = 'Src Not Supported'; break;
+        case 1: errDesc = 'Aborted'; break;
+        case 2: errDesc = 'Network'; break;
+        case 3: errDesc = 'Decode'; break;
+        case 4: errDesc = 'Src Not Supported'; break;
       }
     }
     console.error(`[PlaybackError] ${player.dataset.spotifyUrl} - Code: ${err?.code} (${errDesc})`);
 
     const spotifyUrl = player.dataset.spotifyUrl;
-    // Auto-invalidate cache only on network/decode errors (likely expired link)
-    if (err && (err.code === err.MEDIA_ERR_NETWORK || err.code === err.MEDIA_ERR_DECODE)) {
+    // Auto-invalidate cache on network/decode/src errors (likely expired link or 403/404)
+    if (err && (err.code === 2 || err.code === 3 || err.code === 4)) {
       if (spotdlCache[spotifyUrl]) {
         console.warn(`Invalidating cache for ${spotifyUrl}`);
         delete spotdlCache[spotifyUrl];
