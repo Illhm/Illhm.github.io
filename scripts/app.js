@@ -40,7 +40,6 @@ const SPOTDL_ENDPOINT = 'https://spotdl.zeabur.app/';
 const SPOTDL_CACHE_KEY = 'spotdl-favorites-v1';
 const SPOTDL_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
 const SPOTDL_MAX_CONCURRENT = 2;
-const SPOTDL_TIMEOUT_MS = 20000;
 const spotdlRequests = new Map();
 const spotdlLoadState = new WeakMap();
 const spotdlQueue = [];
@@ -151,14 +150,14 @@ async function fetchSpotdlMetadata(spotifyUrl) {
     return spotdlRequests.get(spotifyUrl);
   }
   const request = enqueueSpotdlRequest(() => {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), SPOTDL_TIMEOUT_MS);
-    return fetch(`${SPOTDL_ENDPOINT}?url=${encodeURIComponent(spotifyUrl)}`, {
-      signal: controller.signal,
-    }).finally(() => clearTimeout(timeout));
+    return fetch(`${SPOTDL_ENDPOINT}?url=${encodeURIComponent(spotifyUrl)}`);
   })
     .then(async response => {
       if (!response.ok) {
+        if (response.status === 503) throw new Error('Service Unavailable (503)');
+        if (response.status === 500) throw new Error('Server Error (500)');
+        if (response.status === 429) throw new Error('Rate Limited (429)');
+        if (response.status === 404) throw new Error('Track Not Found (404)');
         throw new Error(`SpotDL error ${response.status}`);
       }
       const html = await response.text();
@@ -250,7 +249,19 @@ async function refreshSpotdlTrack(player) {
     updateTrackCache(spotifyUrl, data);
     setPlayerState(player, 'ready', 'Streaming');
   } catch (error) {
-    console.error('Gagal memuat data SpotDL', error);
+    let statusMsg = 'Offline';
+    let detailMsg = 'Gunakan metadata cadangan.';
+
+    if (error.message.includes('503') || error.message.includes('500')) {
+      statusMsg = 'Server Down';
+      detailMsg = 'API sedang gangguan.';
+    } else if (error.message.includes('429')) {
+      statusMsg = 'Sibuk';
+      detailMsg = 'Terlalu banyak request.';
+    }
+
+    console.error(`[MusicError] ${spotifyUrl}:`, error.message);
+
     if (audio.src === SILENT_AUDIO) {
       audio.pause();
       audio.removeAttribute('src');
@@ -258,8 +269,8 @@ async function refreshSpotdlTrack(player) {
     setPlayerState(
       player,
       'error',
-      'Offline',
-      'Gunakan metadata cadangan.'
+      statusMsg,
+      detailMsg
     );
   } finally {
     updatePlayButtonState(player);
@@ -438,22 +449,39 @@ function setupPlayer(player) {
     btn.setAttribute('aria-label', 'Putar');
     if (currentAudio === audio) currentAudio = null;
   });
-  audio.addEventListener('error', () => {
-    console.warn(`Playback failed for ${player.dataset.spotifyUrl}`);
-    const spotifyUrl = player.dataset.spotifyUrl;
-    if (spotdlCache[spotifyUrl]) {
-      delete spotdlCache[spotifyUrl];
-      schedulePersistSpotdlCache();
+  audio.addEventListener('error', (e) => {
+    const err = audio.error;
+    let errDesc = 'Unknown';
+    if (err) {
+      switch (err.code) {
+        case err.MEDIA_ERR_ABORTED: errDesc = 'Aborted'; break;
+        case err.MEDIA_ERR_NETWORK: errDesc = 'Network'; break;
+        case err.MEDIA_ERR_DECODE: errDesc = 'Decode'; break;
+        case err.MEDIA_ERR_SRC_NOT_SUPPORTED: errDesc = 'Src Not Supported'; break;
+      }
     }
+    console.error(`[PlaybackError] ${player.dataset.spotifyUrl} - Code: ${err?.code} (${errDesc})`);
+
+    const spotifyUrl = player.dataset.spotifyUrl;
+    // Auto-invalidate cache only on network/decode errors (likely expired link)
+    if (err && (err.code === err.MEDIA_ERR_NETWORK || err.code === err.MEDIA_ERR_DECODE)) {
+      if (spotdlCache[spotifyUrl]) {
+        console.warn(`Invalidating cache for ${spotifyUrl}`);
+        delete spotdlCache[spotifyUrl];
+        schedulePersistSpotdlCache();
+      }
+    }
+
     audio.removeAttribute('src');
     btn.innerHTML = playIcon;
     btn.setAttribute('aria-label', 'Putar');
     btn.disabled = false;
+
     setPlayerState(
       player,
       'error',
       'Gagal',
-      'Gagal memuat. Klik untuk coba lagi.'
+      `Error: ${errDesc}. Klik untuk retry.`
     );
   });
 }
