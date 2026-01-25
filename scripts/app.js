@@ -324,12 +324,22 @@ function startPlayback(player) {
       console.warn('Playback failed', error);
       btn.innerHTML = playIcon;
       btn.setAttribute('aria-label', 'Putar');
-      setPlayerState(
-        player,
-        'error',
-        'Offline',
-        'Preview tidak bisa diputar.'
-      );
+
+      // Check if audio.error is already set (handled by error listener)
+      if (audio.error) return;
+
+      if (error.name === 'NotAllowedError') {
+        // Mobile/Browser policy blocked autoplay. User needs to tap again.
+        // Metadata is loaded, so next tap will be synchronous and succeed.
+        setPlayerState(player, 'ready', 'Ketuk lagi', 'Ketuk lagi untuk memutar.');
+      } else {
+        setPlayerState(
+          player,
+          'error',
+          'Offline',
+          'Preview tidak bisa diputar.'
+        );
+      }
     });
   }
   btn.innerHTML = pauseIcon;
@@ -384,7 +394,7 @@ function createMusicPlayerElement(url) {
         </div>
       </div>
     </div>
-    <audio preload="none"></audio>
+    <audio preload="none" referrerpolicy="no-referrer"></audio>
   `;
   return player;
 }
