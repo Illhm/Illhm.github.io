@@ -1,0 +1,45 @@
+name: Music Sync
+
+on:
+  # Trigger on push when the URL list is updated
+  push:
+    paths:
+      - 'data/url.txt'
+  # Allow manual trigger from GitHub Actions tab
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      # Required to commit downloaded files back to the repo
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        # Install libraries required for scraping and HTTP requests
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests beautifulsoup4
+
+      - name: Run sync script
+        # This script processes data/url.txt, downloads tracks, and updates music/library.json
+        run: python scripts/sync_music.py
+
+      - name: Commit and push changes
+        # Commits the new music files and updated library.json
+        # '|| exit 0' ensures the workflow doesn't fail if there are no new changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add music/
+          git commit -m "Update music library and download tracks" || exit 0
+          git push

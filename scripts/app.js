@@ -58,6 +58,7 @@ function readSpotdlCache() {
 }
 
 const spotdlCache = readSpotdlCache();
+let localLibrary = {};
 
 function persistSpotdlCache() {
   if (spotdlCachePersistTimer) {
@@ -288,6 +289,15 @@ async function refreshSpotdlTrack(player) {
 function ensureSpotdlLoaded(player) {
   const spotifyUrl = player.dataset.spotifyUrl;
   if (!spotifyUrl) return Promise.resolve(null);
+
+  if (localLibrary[spotifyUrl]) {
+    const data = localLibrary[spotifyUrl];
+    applyTrackMetadata(player, data);
+    setPlayerState(player, 'ready', 'Local');
+    updatePlayButtonState(player);
+    return Promise.resolve(data);
+  }
+
   const cached = getCachedTrack(spotifyUrl);
   if (cached) {
     applyTrackMetadata(player, cached);
@@ -506,6 +516,25 @@ function setupPlayer(player) {
 
 async function loadPlaylist() {
   try {
+    try {
+      const libRes = await fetch('music/library.json');
+      if (libRes.ok) {
+        const libData = await libRes.json();
+        libData.forEach(item => {
+          localLibrary[item.spotify_url] = {
+            title: item.title,
+            artist: item.artist,
+            audioUrl: item.audio_path,
+            thumbnailUrl: item.cover_path,
+            source: 'local'
+          };
+        });
+        console.log('Local library loaded', Object.keys(localLibrary).length);
+      }
+    } catch (e) {
+      console.warn('Local library not found or invalid');
+    }
+
     const response = await fetch('data/url.txt');
     if (!response.ok) throw new Error('Failed to load playlist');
     const text = await response.text();
