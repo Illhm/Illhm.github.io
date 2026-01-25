@@ -40,7 +40,6 @@ const SPOTDL_ENDPOINT = 'https://spotdl.zeabur.app/';
 const SPOTDL_CACHE_KEY = 'spotdl-favorites-v1';
 const SPOTDL_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
 const SPOTDL_MAX_CONCURRENT = 2;
-const SPOTDL_TIMEOUT_MS = 50000;
 const spotdlRequests = new Map();
 const spotdlLoadState = new WeakMap();
 const spotdlQueue = [];
@@ -151,11 +150,7 @@ async function fetchSpotdlMetadata(spotifyUrl) {
     return spotdlRequests.get(spotifyUrl);
   }
   const request = enqueueSpotdlRequest(() => {
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), SPOTDL_TIMEOUT_MS);
-    return fetch(`${SPOTDL_ENDPOINT}?url=${encodeURIComponent(spotifyUrl)}`, {
-      signal: controller.signal,
-    }).finally(() => clearTimeout(timeout));
+    return fetch(`${SPOTDL_ENDPOINT}?url=${encodeURIComponent(spotifyUrl)}`);
   })
     .then(async response => {
       if (!response.ok) {
