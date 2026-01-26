@@ -235,7 +235,7 @@ function updatePlayButtonState(player) {
   }
 }
 
-async function refreshSpotdlTrack(player) {
+async function refreshSpotdlTrack(player, preloadedData = null, preloadedError = null) {
   const spotifyUrl = player.dataset.spotifyUrl;
   if (!spotifyUrl) return;
 
@@ -247,7 +247,14 @@ async function refreshSpotdlTrack(player) {
   }
   setPlayerState(player, 'loading', 'Memuat...');
   try {
-    const data = await fetchSpotdlMetadata(spotifyUrl);
+    let data;
+    if (preloadedError) {
+      throw preloadedError;
+    } else if (preloadedData) {
+      data = preloadedData;
+    } else {
+      data = await fetchSpotdlMetadata(spotifyUrl);
+    }
     applyTrackMetadata(player, data);
     if (!data.audioUrl) {
       throw new Error('SpotDL preview missing');
@@ -286,6 +293,73 @@ async function refreshSpotdlTrack(player) {
   }
 }
 
+async function fetchSpotdlBatch(urls) {
+  const promises = urls.map(u => fetchSpotdlMetadata(u));
+  const results = await Promise.allSettled(promises);
+  const map = new Map();
+  urls.forEach((url, i) => {
+    map.set(url, results[i]);
+  });
+  return map;
+}
+
+class SpotDLBatcher {
+  constructor() {
+    this.queue = new Map();
+    this.timer = null;
+  }
+
+  add(player) {
+    if (this.queue.has(player)) {
+      return this.queue.get(player).promise;
+    }
+
+    let resolve, reject;
+    const promise = new Promise((res, rej) => {
+      resolve = res;
+      reject = rej;
+    });
+
+    this.queue.set(player, { resolve, reject, promise });
+
+    if (!this.timer) {
+      this.timer = setTimeout(() => this.process(), 50);
+    }
+
+    return promise;
+  }
+
+  async process() {
+    this.timer = null;
+    const batch = Array.from(this.queue.entries());
+    this.queue.clear();
+
+    const players = batch.map(([p]) => p);
+    const urls = [...new Set(players.map(p => p.dataset.spotifyUrl))];
+
+    const results = await fetchSpotdlBatch(urls);
+
+    batch.forEach(([player, { resolve, reject }]) => {
+      const url = player.dataset.spotifyUrl;
+      const result = results.get(url);
+      let data = null;
+      let error = null;
+
+      if (result && result.status === 'fulfilled') {
+        data = result.value;
+      } else if (result) {
+        error = result.reason;
+      }
+
+      refreshSpotdlTrack(player, data, error)
+        .then(resolve)
+        .catch(reject);
+    });
+  }
+}
+
+const spotdlBatcher = new SpotDLBatcher();
+
 function ensureSpotdlLoaded(player) {
   const spotifyUrl = player.dataset.spotifyUrl;
   if (!spotifyUrl) return Promise.resolve(null);
@@ -308,7 +382,7 @@ function ensureSpotdlLoaded(player) {
   if (spotdlLoadState.has(player)) {
     return spotdlLoadState.get(player);
   }
-  const request = refreshSpotdlTrack(player).finally(() => {
+  const request = spotdlBatcher.add(player).finally(() => {
     spotdlLoadState.delete(player);
   });
   spotdlLoadState.set(player, request);
