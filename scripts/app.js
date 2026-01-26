@@ -657,6 +657,7 @@ async function loadGallery() {
     if (!Array.isArray(files)) return;
 
     // Sort files by name if needed, assuming the JSON order is what we want or we sort here
+    const fragment = document.createDocumentFragment();
     files
       .sort((a, b) => a.name.localeCompare(b.name))
       .forEach(file => {
@@ -695,13 +696,14 @@ async function loadGallery() {
             img.src = img.dataset.fullSrc;
           }
         });
-        container.appendChild(img);
+        fragment.appendChild(img);
         if (observer) {
           observer.observe(img);
         } else if (img.dataset.src) {
           img.src = img.dataset.src;
         }
       });
+    container.appendChild(fragment);
   } catch (err) {
     console.error('Failed to load gallery', err);
     container.innerHTML = '<p style="color: #888; padding: 10px;">Gagal memuat galeri.</p>';
