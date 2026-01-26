@@ -732,30 +732,30 @@ async function loadGallery() {
 
     // Sort files by name if needed, assuming the JSON order is what we want or we sort here
     const fragment = document.createDocumentFragment();
+
+    // Determine if we should use weserv.nl for optimization.
+    // Weserv requires a public URL. Localhost and private IPs are not accessible by weserv.
+    const hostname = window.location.hostname;
+    const isLocalNetwork =
+        hostname === 'localhost' ||
+        hostname === '127.0.0.1' ||
+        hostname.startsWith('192.168.') ||
+        hostname.startsWith('10.') ||
+        hostname.endsWith('.local');
+
     files
       .sort((a, b) => a.name.localeCompare(b.name))
       .forEach(file => {
         const img = document.createElement('img');
-        // Construct full URL. We assume the site is hosted at root or we need to handle base path.
-        // For static sites, using relative path from JSON is usually best if it's relative to root.
-        // The JSON has "gallery/img_XX.jpg".
 
-        // We still want to use weserv.nl for optimization?
-        // Weserv needs a public URL. If we are on localhost, it won't work.
-        // If we are on GitHub Pages, we can construct the public URL.
-
-        const isLocalhost = ['localhost', '127.0.0.1'].includes(window.location.hostname);
         let fullUrl = file.path;
-
+        // Construct absolute URL if path is relative, to ensure weserv can fetch it (if public)
         if (!fullUrl.startsWith('http')) {
-           // Construct absolute URL for weserv
-           // If on github pages: https://{owner}.github.io/{repo}/{path}
-           // But we might be on a custom domain or subdirectory.
-           // A safe bet for weserv is to provide the full absolute URL.
            fullUrl = new URL(file.path, window.location.href).href;
         }
 
-        const optimizedUrl = isLocalhost ? file.path : getOptimizedImageUrl(fullUrl);
+        // Use local file directly if on a local network, otherwise use optimized image from weserv
+        const optimizedUrl = isLocalNetwork ? file.path : getOptimizedImageUrl(fullUrl);
 
         img.dataset.src = optimizedUrl;
         img.dataset.fullSrc = file.path; // Use local path as fallback/full src
