@@ -538,10 +538,18 @@ async function loadPlaylist() {
     const response = await fetch('data/url.txt');
     if (!response.ok) throw new Error('Failed to load playlist');
     const text = await response.text();
-    const urls = [...new Set(text.split('\n')
-      .map(line => line.trim())
-      .filter(line => line && !line.startsWith('#')))]
-      .slice(0, 50);
+    const urls = [];
+    const seen = new Set();
+    const lines = text.split('\n');
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (line && !line.startsWith('#') && !seen.has(line)) {
+        seen.add(line);
+        urls.push(line);
+        if (urls.length >= 50) break;
+      }
+    }
 
     if (urls.length === 0) return;
 
