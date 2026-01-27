@@ -14,6 +14,9 @@ MUSIC_DIR = Path('music')
 COVERS_DIR = MUSIC_DIR / 'covers'
 LIBRARY_FILE = MUSIC_DIR / 'library.json'
 SPOTDL_API = "https://spotdl.zeabur.app/"
+HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+}
 
 def ensure_dirs():
     MUSIC_DIR.mkdir(parents=True, exist_ok=True)
@@ -30,7 +33,7 @@ def parse_spotify_url(url):
 
 def download_file(url, filepath):
     try:
-        response = requests.get(url, stream=True, timeout=60)
+        response = requests.get(url, stream=True, timeout=60, headers=HEADERS)
         response.raise_for_status()
         with open(filepath, 'wb') as f:
             for chunk in response.iter_content(chunk_size=8192):
@@ -43,18 +46,22 @@ def download_file(url, filepath):
 def fetch_metadata(spotify_url):
     try:
         api_url = f"{SPOTDL_API}?url={spotify_url}"
-        response = requests.get(api_url, timeout=30)
+        response = requests.get(api_url, timeout=30, headers=HEADERS)
         if response.status_code != 200:
             print(f"API Error {response.status_code} for {spotify_url}")
             return None
 
         soup = BeautifulSoup(response.text, 'html.parser')
 
-        page_title = soup.title.string if soup.title else ""
+        if soup.title and soup.title.string:
+            page_title = soup.title.string
+        else:
+            page_title = ""
+
         if ' - ' in page_title:
             title, artist = page_title.split(' - ', 1)
         else:
-            title = page_title
+            title = page_title if page_title else "Unknown Title"
             artist = "Unknown Artist"
 
         source = soup.find('source')
