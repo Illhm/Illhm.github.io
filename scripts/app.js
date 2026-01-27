@@ -36,152 +36,9 @@ const playIcon =
 const pauseIcon =
   '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M6 19h4V5H6zm8-14v14h4V5h-4z"/></svg>';
 const SILENT_AUDIO = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAgZGF0YQQAAAAAAA==';
-const SPOTDL_ENDPOINT = 'https://spotdl.zeabur.app/';
-const SPOTDL_CACHE_KEY = 'spotdl-favorites-v1';
-const SPOTDL_CACHE_TTL = 1000 * 60 * 60 * 24 * 7;
-const SPOTDL_MAX_CONCURRENT = 2;
-const spotdlRequests = new Map();
-const spotdlLoadState = new WeakMap();
-const spotdlQueue = [];
-let spotdlActive = 0;
+
 let currentAudio = null;
-let spotdlCachePersistTimer = null;
-
-function readSpotdlCache() {
-  try {
-    const raw = localStorage.getItem(SPOTDL_CACHE_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch (error) {
-    console.warn('SpotDL cache reset', error);
-    return {};
-  }
-}
-
-const spotdlCache = readSpotdlCache();
 let localLibrary = {};
-
-function persistSpotdlCache() {
-  if (spotdlCachePersistTimer) {
-    clearTimeout(spotdlCachePersistTimer);
-    spotdlCachePersistTimer = null;
-  }
-  try {
-    localStorage.setItem(SPOTDL_CACHE_KEY, JSON.stringify(spotdlCache));
-  } catch (error) {
-    console.warn('SpotDL cache write failed', error);
-  }
-}
-
-function schedulePersistSpotdlCache() {
-  if (spotdlCachePersistTimer) {
-    clearTimeout(spotdlCachePersistTimer);
-  }
-  spotdlCachePersistTimer = setTimeout(persistSpotdlCache, 300);
-}
-
-function getCachedTrack(spotifyUrl) {
-  const cached = spotdlCache[spotifyUrl];
-  if (!cached) return null;
-  if (Date.now() - cached.fetchedAt > SPOTDL_CACHE_TTL) {
-    return null;
-  }
-  return cached;
-}
-
-function updateTrackCache(spotifyUrl, data) {
-  spotdlCache[spotifyUrl] = { ...data, fetchedAt: Date.now() };
-  schedulePersistSpotdlCache();
-}
-
-function enqueueSpotdlRequest(task) {
-  return new Promise((resolve, reject) => {
-    spotdlQueue.push({ task, resolve, reject });
-    processSpotdlQueue();
-  });
-}
-
-function processSpotdlQueue() {
-  if (spotdlActive >= SPOTDL_MAX_CONCURRENT) return;
-  const next = spotdlQueue.shift();
-  if (!next) return;
-  spotdlActive += 1;
-  Promise.resolve()
-    .then(next.task)
-    .then(next.resolve, next.reject)
-    .finally(() => {
-      spotdlActive -= 1;
-      processSpotdlQueue();
-    });
-}
-
-function extractSpotdlThumbnail(html, doc) {
-  const metaImage = doc.querySelector('meta[property="og:image"]')?.content;
-  if (metaImage) return metaImage;
-  const matches = html.match(/https:\/\/i\.scdn\.co\/image\/[a-zA-Z0-9]+/g);
-  return matches ? matches[0] : null;
-}
-
-function parseSpotdlTitle(doc) {
-  const titleText =
-    doc.querySelector('meta[property="og:title"]')?.content ||
-    doc.querySelector('title')?.textContent;
-  if (!titleText) return {};
-  if (titleText.includes(' - ')) {
-    const [title, artist] = titleText.split(' - ');
-    return { title: title.trim(), artist: artist.trim() };
-  }
-  return { title: titleText.trim() };
-}
-
-function sanitizeMediaUrl(rawUrl) {
-  if (!rawUrl) return '';
-  try {
-    // Prevent common undefined/null injection issues in URLs
-    if (rawUrl.includes('undefined') || rawUrl.includes('null')) {
-      console.warn('Blocked potentially malformed URL:', rawUrl);
-      return '';
-    }
-    const parsed = new URL(rawUrl);
-    if (parsed.protocol === 'https:' || parsed.protocol === 'http:') {
-      return parsed.toString();
-    }
-  } catch (error) {
-    console.warn('Invalid media URL', rawUrl, error);
-  }
-  return '';
-}
-
-async function fetchSpotdlMetadata(spotifyUrl) {
-  if (spotdlRequests.has(spotifyUrl)) {
-    return spotdlRequests.get(spotifyUrl);
-  }
-  const request = enqueueSpotdlRequest(() => {
-    return fetch(`${SPOTDL_ENDPOINT}?url=${encodeURIComponent(spotifyUrl)}`);
-  })
-    .then(async response => {
-      if (!response.ok) {
-        if (response.status === 503) throw new Error('Service Unavailable (503)');
-        if (response.status === 500) throw new Error('Server Error (500)');
-        if (response.status === 429) throw new Error('Rate Limited (429)');
-        if (response.status === 404) throw new Error('Track Not Found (404)');
-        throw new Error(`SpotDL error ${response.status}`);
-      }
-      const html = await response.text();
-      const doc = new DOMParser().parseFromString(html, 'text/html');
-      const source = doc.querySelector('source');
-      const thumbnailUrl = extractSpotdlThumbnail(html, doc);
-      return {
-        audioUrl: sanitizeMediaUrl(source?.src),
-        thumbnailUrl,
-        ...parseSpotdlTitle(doc),
-      };
-    })
-    .finally(() => {
-      spotdlRequests.delete(spotifyUrl);
-    });
-  spotdlRequests.set(spotifyUrl, request);
-  return request;
-}
 
 function setPlayerState(player, state, label, message) {
   player.classList.remove('is-loading', 'is-ready', 'is-error');
@@ -235,132 +92,7 @@ function updatePlayButtonState(player) {
   }
 }
 
-async function refreshSpotdlTrack(player, preloadedData = null, preloadedError = null) {
-  const spotifyUrl = player.dataset.spotifyUrl;
-  if (!spotifyUrl) return;
-
-  const audio = player.querySelector('audio');
-  const btn = player.querySelector('.play-btn');
-  if (btn) {
-    btn.disabled = true;
-    btn.setAttribute('aria-label', 'Memuat');
-  }
-  setPlayerState(player, 'loading', 'Memuat...');
-  try {
-    let data;
-    if (preloadedError) {
-      throw preloadedError;
-    } else if (preloadedData) {
-      data = preloadedData;
-    } else {
-      data = await fetchSpotdlMetadata(spotifyUrl);
-    }
-    applyTrackMetadata(player, data);
-    if (!data.audioUrl) {
-      throw new Error('SpotDL preview missing');
-    }
-    updateTrackCache(spotifyUrl, data);
-    setPlayerState(player, 'ready', 'Streaming');
-  } catch (error) {
-    let statusMsg = 'Offline';
-    let detailMsg = 'Gunakan metadata cadangan.';
-
-    if (error.name === 'AbortError') {
-      statusMsg = 'Timeout';
-      detailMsg = 'Koneksi lambat.';
-    } else if (error.message.includes('503') || error.message.includes('500')) {
-      statusMsg = 'Server Down';
-      detailMsg = 'API sedang gangguan.';
-    } else if (error.message.includes('429')) {
-      statusMsg = 'Sibuk';
-      detailMsg = 'Terlalu banyak request.';
-    }
-
-    console.error(`[MusicError] ${spotifyUrl}:`, error.message);
-
-    if (audio.src === SILENT_AUDIO) {
-      audio.pause();
-      audio.removeAttribute('src');
-    }
-    setPlayerState(
-      player,
-      'error',
-      statusMsg,
-      detailMsg
-    );
-  } finally {
-    updatePlayButtonState(player);
-  }
-}
-
-async function fetchSpotdlBatch(urls) {
-  const promises = urls.map(u => fetchSpotdlMetadata(u));
-  const results = await Promise.allSettled(promises);
-  const map = new Map();
-  urls.forEach((url, i) => {
-    map.set(url, results[i]);
-  });
-  return map;
-}
-
-class SpotDLBatcher {
-  constructor() {
-    this.queue = new Map();
-    this.timer = null;
-  }
-
-  add(player) {
-    if (this.queue.has(player)) {
-      return this.queue.get(player).promise;
-    }
-
-    let resolve, reject;
-    const promise = new Promise((res, rej) => {
-      resolve = res;
-      reject = rej;
-    });
-
-    this.queue.set(player, { resolve, reject, promise });
-
-    if (!this.timer) {
-      this.timer = setTimeout(() => this.process(), 50);
-    }
-
-    return promise;
-  }
-
-  async process() {
-    this.timer = null;
-    const batch = Array.from(this.queue.entries());
-    this.queue.clear();
-
-    const players = batch.map(([p]) => p);
-    const urls = [...new Set(players.map(p => p.dataset.spotifyUrl))];
-
-    const results = await fetchSpotdlBatch(urls);
-
-    batch.forEach(([player, { resolve, reject }]) => {
-      const url = player.dataset.spotifyUrl;
-      const result = results.get(url);
-      let data = null;
-      let error = null;
-
-      if (result && result.status === 'fulfilled') {
-        data = result.value;
-      } else if (result) {
-        error = result.reason;
-      }
-
-      refreshSpotdlTrack(player, data, error)
-        .then(resolve)
-        .catch(reject);
-    });
-  }
-}
-
-const spotdlBatcher = new SpotDLBatcher();
-
-function ensureSpotdlLoaded(player) {
+function ensureTrackLoaded(player) {
   const spotifyUrl = player.dataset.spotifyUrl;
   if (!spotifyUrl) return Promise.resolve(null);
 
@@ -372,21 +104,9 @@ function ensureSpotdlLoaded(player) {
     return Promise.resolve(data);
   }
 
-  const cached = getCachedTrack(spotifyUrl);
-  if (cached) {
-    applyTrackMetadata(player, cached);
-    setPlayerState(player, 'ready', 'Streaming');
-    updatePlayButtonState(player);
-    return Promise.resolve(cached);
-  }
-  if (spotdlLoadState.has(player)) {
-    return spotdlLoadState.get(player);
-  }
-  const request = spotdlBatcher.add(player).finally(() => {
-    spotdlLoadState.delete(player);
-  });
-  spotdlLoadState.set(player, request);
-  return request;
+  // Track not in library.
+  // We avoid showing an intrusive error here as per user preference.
+  return Promise.resolve(null);
 }
 
 function pauseOtherAudio(audio) {
@@ -421,14 +141,8 @@ function startPlayback(player) {
         // Mobile/Browser policy blocked autoplay. User needs to tap again.
         // Metadata is loaded, so next tap will be synchronous and succeed.
         setPlayerState(player, 'ready', 'Ketuk lagi', 'Ketuk lagi untuk memutar.');
-      } else {
-        setPlayerState(
-          player,
-          'error',
-          'Offline',
-          'Preview tidak bisa diputar.'
-        );
       }
+      // Removed "Offline" error block.
     });
   }
   btn.innerHTML = pauseIcon;
@@ -441,7 +155,7 @@ const musicObserver = supportsIntersectionObserver
       entries => {
         entries.forEach(entry => {
           if (entry.isIntersecting) {
-            ensureSpotdlLoaded(entry.target);
+            ensureTrackLoaded(entry.target);
             musicObserver.unobserve(entry.target);
           }
         });
@@ -496,20 +210,15 @@ function setupPlayer(player) {
     player.dataset.fallbackCover = cover.src;
   }
 
-  const cached = getCachedTrack(player.dataset.spotifyUrl);
-  if (cached) {
-    applyTrackMetadata(player, cached);
-    setPlayerState(player, 'ready', 'Streaming');
-    updatePlayButtonState(player);
-  } else if (musicObserver) {
+  if (musicObserver) {
     // Lazy load: Fetch metadata only when player is near viewport
     musicObserver.observe(player);
   } else {
-    ensureSpotdlLoaded(player);
+    ensureTrackLoaded(player);
   }
 
   // User intent prefetch
-  const intentHandler = () => ensureSpotdlLoaded(player);
+  const intentHandler = () => ensureTrackLoaded(player);
   player.addEventListener('pointerenter', intentHandler, { once: true });
   player.addEventListener('touchstart', intentHandler, {
     once: true,
@@ -525,7 +234,7 @@ function setupPlayer(player) {
       setPlayerState(player, 'loading', 'Memuat...');
       player.dataset.pendingPlay = 'true';
       try {
-        await ensureSpotdlLoaded(player);
+        await ensureTrackLoaded(player);
       } finally {
         btn.disabled = false;
       }
@@ -563,16 +272,6 @@ function setupPlayer(player) {
       }
     }
     console.error(`[PlaybackError] ${player.dataset.spotifyUrl} - Code: ${err?.code} (${errDesc})`);
-
-    const spotifyUrl = player.dataset.spotifyUrl;
-    // Auto-invalidate cache on network/decode/src errors (likely expired link or 403/404)
-    if (err && (err.code === 2 || err.code === 3 || err.code === 4)) {
-      if (spotdlCache[spotifyUrl]) {
-        console.warn(`Invalidating cache for ${spotifyUrl}`);
-        delete spotdlCache[spotifyUrl];
-        schedulePersistSpotdlCache();
-      }
-    }
 
     audio.removeAttribute('src');
     btn.innerHTML = playIcon;
@@ -668,9 +367,6 @@ async function loadPlaylist() {
 
 loadPlaylist();
 
-window.addEventListener('pagehide', persistSpotdlCache);
-window.addEventListener('beforeunload', persistSpotdlCache);
-
 const DEFAULT_GALLERY_OWNER = 'Illhm';
 const DEFAULT_GALLERY_REPO = 'Illhm.github.io';
 
@@ -730,11 +426,7 @@ async function loadGallery() {
     const files = await res.json();
     if (!Array.isArray(files)) return;
 
-    // Sort files by name if needed, assuming the JSON order is what we want or we sort here
     const fragment = document.createDocumentFragment();
-
-    // Determine if we should use weserv.nl for optimization.
-    // Weserv requires a public URL. Localhost and private IPs are not accessible by weserv.
     const hostname = window.location.hostname;
     const isLocalNetwork =
         hostname === 'localhost' ||
@@ -749,16 +441,14 @@ async function loadGallery() {
         const img = document.createElement('img');
 
         let fullUrl = file.path;
-        // Construct absolute URL if path is relative, to ensure weserv can fetch it (if public)
         if (!fullUrl.startsWith('http')) {
            fullUrl = new URL(file.path, window.location.href).href;
         }
 
-        // Use local file directly if on a local network, otherwise use optimized image from weserv
         const optimizedUrl = isLocalNetwork ? file.path : getOptimizedImageUrl(fullUrl);
 
         img.dataset.src = optimizedUrl;
-        img.dataset.fullSrc = file.path; // Use local path as fallback/full src
+        img.dataset.fullSrc = file.path;
         img.alt = file.name;
         img.loading = 'lazy';
         img.decoding = 'async';
