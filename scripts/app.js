@@ -165,6 +165,11 @@ const musicObserver = supportsIntersectionObserver
   : null;
 
 function createMusicPlayerElement(url) {
+  let saveUrl = url;
+  if (url.startsWith('spotify:track:')) {
+    saveUrl = `https://open.spotify.com/track/${url.split(':')[2]}`;
+  }
+
   const player = document.createElement('div');
   player.className = 'music-player';
   player.dataset.spotifyUrl = url;
@@ -192,7 +197,7 @@ function createMusicPlayerElement(url) {
         </div>
         <p class="track-meta">Spotify Track</p>
         <div class="music-actions">
-          <a class="save-link" href="${url}" target="_blank" rel="noopener">Save on Spotify</a>
+          <a class="save-link" href="${saveUrl}" target="_blank" rel="noopener">Save on Spotify</a>
           <span class="status-message" aria-live="polite"></span>
         </div>
       </div>
@@ -450,7 +455,7 @@ async function loadGallery() {
 
         img.dataset.src = optimizedUrl;
         img.dataset.fullSrc = file.path;
-        img.alt = file.name;
+        img.alt = file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " ");
         img.loading = 'lazy';
         img.decoding = 'async';
         img.fetchPriority = 'low';

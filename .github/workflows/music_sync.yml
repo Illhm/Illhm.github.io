@@ -34,12 +34,16 @@ jobs:
         # This script processes data/url.txt, downloads tracks, and updates music/library.json
         run: python scripts/sync_music.py
 
+      - name: Run gallery generation
+        # Generates gallery.json from the gallery/ directory
+        run: python scripts/generate_gallery.py
+
       - name: Commit and push changes
         # Commits the new music files and updated library.json
         # '|| exit 0' ensures the workflow doesn't fail if there are no new changes
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add music/
-          git commit -m "Update music library and download tracks" || exit 0
+          git add music/ gallery.json
+          git commit -m "Update music library and gallery" || exit 0
           git push
