@@ -332,7 +332,8 @@ async function loadPlaylist() {
     if (trackIdMatch) {
       const trackId = trackIdMatch[1];
       const iframe = document.querySelector('.spotify-embed iframe');
-      if (iframe) {
+      // Only update if not already a playlist embed
+      if (iframe && !iframe.src.includes('/embed/playlist/')) {
         iframe.src = `https://open.spotify.com/embed/track/${trackId}?utm_source=generator`;
         const saveLink = document.querySelector('.spotify-button');
         if (saveLink) saveLink.href = featuredUrl;
