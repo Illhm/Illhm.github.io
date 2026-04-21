@@ -1,5 +1,12 @@
 const supportsIntersectionObserver = 'IntersectionObserver' in window;
 
+// Performance-optimized constants
+const PROTOCOL_REGEX = /^https?:\/\//;
+const EXT_REGEX = /\.[^/.]+$/;
+const UNDERSCORE_REGEX = /_/g;
+const SPOTIFY_TRACK_ID_REGEX = /(?:spotify:track:|track\/)([a-zA-Z0-9]+)/;
+const NAME_COLLATOR = new Intl.Collator();
+
 // Scroll Reveal Animation (Initialize first to prevent blank screen if other scripts fail)
 function initScrollReveal() {
   if (supportsIntersectionObserver) {
@@ -333,7 +340,7 @@ async function loadPlaylist() {
 
     // Featured Track
     const featuredUrl = urls[0];
-    const trackIdMatch = featuredUrl.match(/(?:spotify:track:|track\/)([a-zA-Z0-9]+)/);
+    const trackIdMatch = featuredUrl.match(SPOTIFY_TRACK_ID_REGEX);
     if (trackIdMatch) {
       const trackId = trackIdMatch[1];
       const iframe = document.querySelector('.spotify-embed iframe');
@@ -393,13 +400,8 @@ function resolveGalleryRepo(container) {
 }
 
 function getOptimizedImageUrl(url) {
-  const cleanUrl = url.replace(/^https?:\/\//, '');
-  const proxyUrl = new URL('https://images.weserv.nl/');
-  proxyUrl.searchParams.set('url', cleanUrl);
-  proxyUrl.searchParams.set('w', '900');
-  proxyUrl.searchParams.set('q', '70');
-  proxyUrl.searchParams.set('output', 'webp');
-  return proxyUrl.toString();
+  const cleanUrl = url.replace(PROTOCOL_REGEX, '');
+  return `https://images.weserv.nl/?url=${encodeURIComponent(cleanUrl)}&w=900&q=70&output=webp`;
 }
 
 async function loadGallery() {
@@ -441,21 +443,22 @@ async function loadGallery() {
         hostname.startsWith('10.') ||
         hostname.endsWith('.local');
 
+    const currentHref = window.location.href;
     files
-      .sort((a, b) => a.name.localeCompare(b.name))
+      .sort((a, b) => NAME_COLLATOR.compare(a.name, b.name))
       .forEach(file => {
         const img = document.createElement('img');
 
         let fullUrl = file.path;
         if (!fullUrl.startsWith('http')) {
-           fullUrl = new URL(file.path, window.location.href).href;
+           fullUrl = new URL(file.path, currentHref).href;
         }
 
         const optimizedUrl = isLocalNetwork ? file.path : getOptimizedImageUrl(fullUrl);
 
         img.dataset.src = optimizedUrl;
         img.dataset.fullSrc = file.path;
-        img.alt = file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " ");
+        img.alt = file.name.replace(EXT_REGEX, "").replace(UNDERSCORE_REGEX, " ");
         img.loading = 'lazy';
         img.decoding = 'async';
         img.fetchPriority = 'low';
