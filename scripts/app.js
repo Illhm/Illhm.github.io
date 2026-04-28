@@ -301,9 +301,13 @@ function setupPlayer(player) {
 
 async function loadPlaylist() {
   try {
-    try {
-      const libRes = await fetch('music/library.json');
-      if (libRes.ok) {
+    const [libRes, response] = await Promise.all([
+      fetch('music/library.json').catch(() => null),
+      fetch('data/url.txt')
+    ]);
+
+    if (libRes && libRes.ok) {
+      try {
         const libData = await libRes.json();
         libData.forEach(item => {
           localLibrary[item.spotify_url] = {
@@ -315,12 +319,10 @@ async function loadPlaylist() {
           };
         });
         console.log('Local library loaded', Object.keys(localLibrary).length);
+      } catch (e) {
+        console.warn('Local library invalid');
       }
-    } catch (e) {
-      console.warn('Local library not found or invalid');
     }
-
-    const response = await fetch('data/url.txt');
     if (!response.ok) throw new Error('Failed to load playlist');
     const text = await response.text();
     const urls = [];
